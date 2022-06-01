@@ -11,6 +11,7 @@ static const char* ips_error_messages[IPS_ERROR_COUNT] = {
     [IPS_PATCH_FILE_MMAP]="Cannot open the given patch file.",
     [IPS_INPUT_FILE_MMAP]="Cannot open the given input file.",
     [IPS_OUTPUT_FILE_MMAP]="Cannot open the given output file.",
+    [IPS_NO_FOOTER]="EOF footer not found."
 };
 
 static int try_ips_patch(char *pfn, char *ifn, char *ofn);
@@ -90,7 +91,7 @@ static int try_ips_patch(char *pfn, char *ifn, char *ofn)
 
     output = outputmf.handle;
 
-    while (patch < patchend)
+    while (patch < patchend - 3)
     {
         uint32_t offset = patch24();
         uint16_t size = patch16();
@@ -111,6 +112,9 @@ static int try_ips_patch(char *pfn, char *ifn, char *ofn)
                 *(outputoff++) = byte;
         }
     }
+
+    if (patch8() != 'E' || patch8() != 'O' || patch8() != 'F')
+        error(IPS_NO_FOOTER);
 
 #undef error
 #undef patch8
