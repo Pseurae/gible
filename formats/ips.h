@@ -10,7 +10,10 @@ the size of the input and output file to 16MBs.
 #include <stdint.h>
 
 int ips_check(uint8_t *patch);
+int ips32_check(uint8_t *patch);
+
 int ips_patch_main(char *pfn, char *ifn, char *ofn);
+int ips32_patch_main(char *pfn, char *ifn, char *ofn);
 
 enum
 {

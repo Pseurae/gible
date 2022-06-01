@@ -73,6 +73,8 @@ static void gible_main(int argc, char *argv[])
 
     if (ips_check(header_buf))
         ret = ips_patch_main(patchfile, inputfile, outputfile);
+    if (ips32_check(header_buf))
+        ret = ips32_patch_main(patchfile, inputfile, outputfile);
     if (ups_check(header_buf))
         ret = ups_patch_main(patchfile, inputfile, outputfile);
     if (bps_check(header_buf))
