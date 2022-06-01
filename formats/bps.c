@@ -4,10 +4,24 @@
 #include "bps.h"
 #include "../utils.h"
 #include "../mmap.h"
+#include "../crc32.h"
+
+static const char* bps_error_messages[BPS_ERROR_COUNT] = {
+    [BPS_SUCCESS]="BPS patching successful.",
+    [BPS_INVALID_HEADER]="Invalid header for a BPS file.",
+    [BPS_TOO_SMALL]="Patch file is too small to be a BPS file.",
+    [BPS_INVALID_ACTION]="Invalid BPS patching action.",
+    [BPS_PATCH_CRC_NOMATCH]="Patch CRCs don't match.",
+    [BPS_INPUT_CRC_NOMATCH]="Input CRCs don't match.",
+    [BPS_OUTPUT_CRC_NOMATCH]="Output CRCs don't match.",
+    [BPS_PATCH_FILE_MMAP]="Cannot open the given patch file.",
+    [BPS_INPUT_FILE_MMAP]="Cannot open the given input file.",
+    [BPS_OUTPUT_FILE_MMAP]="Cannot open the given output file."
+};
 
 static int try_bps_patch(char *pfn, char *ifn, char *ofn);
 
-int bps_check(uint8_t *patch)
+inline int bps_check(uint8_t *patch)
 {
     char patch_header[4] = {'B', 'P', 'S', '1'};
     for (int i = 0; i < 4; i++)
@@ -21,7 +35,8 @@ int bps_check(uint8_t *patch)
 int bps_patch_main(char *pfn, char *ifn, char *ofn)
 {
     int status = try_bps_patch(pfn, ifn, ofn);
-    return 0;
+    fprintf(stderr, "%s\n", bps_error_messages[status]);
+    return status;
 }
 
 enum bps_action
@@ -71,7 +86,7 @@ static int try_bps_patch(char *pfn, char *ifn, char *ofn)
     patchcrc = patchend - 12;
 
     stored_crc[2] = read32le(patchcrc + 8);
-    actual_crc[2] = crc32_calculate(patchstart, patchmf.size - 4);
+    actual_crc[2] = crc32(patchstart, patchmf.size - 4, 0);
 
     if (stored_crc[2] != actual_crc[2])
         error(BPS_PATCH_CRC_NOMATCH);
@@ -98,7 +113,7 @@ static int try_bps_patch(char *pfn, char *ifn, char *ofn)
     }
 
     stored_crc[0] = read32le(patchcrc);
-    actual_crc[0] = crc32_calculate(input, input_size);
+    actual_crc[0] = crc32(input, input_size, 0);
 
     if (stored_crc[0] != actual_crc[0])
         error(BPS_INPUT_CRC_NOMATCH);
@@ -168,6 +183,10 @@ static int try_bps_patch(char *pfn, char *ifn, char *ofn)
             error(BPS_INVALID_ACTION);
         }
     }
+
+    actual_crc[1] = crc32(outputstart, outputmf.size, 0);
+    if (stored_crc[1] != actual_crc[1])
+        error(BPS_OUTPUT_CRC_NOMATCH);
 
 #undef error
 #undef patch8

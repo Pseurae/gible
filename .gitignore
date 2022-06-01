@@ -54,3 +54,7 @@ dkms.conf
 # General Files
 .DS_Store
 [Dd]esktop.ini
+.vscode/
+obj/
+output
+gible

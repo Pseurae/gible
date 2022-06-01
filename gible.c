@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "utils.h"
 #include "mmap.h"
@@ -69,6 +70,7 @@ static void gible_main(int argc, char *argv[])
     fclose(p);
 
     int ret = -1;
+
     if (ips_check(header_buf))
         ret = ips_patch_main(patchfile, inputfile, outputfile);
     if (ups_check(header_buf))
@@ -77,7 +79,7 @@ static void gible_main(int argc, char *argv[])
         ret = bps_patch_main(patchfile, inputfile, outputfile);
 
     if (ret == -1) fprintf(stderr, "Unsupported patch type.\n");
-    else if (ret) fprintf(stderr, "Successfully patched files.\n");
+    else if (ret == 0) fprintf(stderr, "Successfully patched files.\n");
     else fprintf(stderr, "Failed to patch.\n");
 
     return;

@@ -4,10 +4,23 @@
 #include "ups.h"
 #include "../utils.h"
 #include "../mmap.h"
+#include "../crc32.h"
+
+static const char* ups_error_messages[UPS_ERROR_COUNT] = {
+    [UPS_SUCCESS]="UPS patching successful.",
+    [UPS_INVALID_HEADER]="Invalid header for an UPS file.",
+    [UPS_TOO_SMALL]="Patch file is too small to be an UPS file.",
+    [UPS_PATCH_CRC_NOMATCH]="Patch CRCs don't match.",
+    [UPS_INPUT_CRC_NOMATCH]="Input CRCs don't match.",
+    [UPS_OUTPUT_CRC_NOMATCH]="Output CRCs don't match.",
+    [UPS_PATCH_FILE_MMAP]="Cannot open the given patch file.",
+    [UPS_INPUT_FILE_MMAP]="Cannot open the given input file.",
+    [UPS_OUTPUT_FILE_MMAP]="Cannot open the given output file."
+};
 
 static int try_ups_patch(char *pfn, char *ifn, char *ofn);
 
-int ups_check(uint8_t *patch)
+inline int ups_check(uint8_t *patch)
 {
     char patch_header[4] = {'U', 'P', 'S', '1'};
 
@@ -23,7 +36,8 @@ int ups_check(uint8_t *patch)
 int ups_patch_main(char *pfn, char *ifn, char *ofn)
 {
     int status = try_ups_patch(pfn, ifn, ofn);
-    return 0;
+    fprintf(stderr, "%s\n", ups_error_messages[status]);
+    return status;
 }
 
 static int try_ups_patch(char *pfn, char *ifn, char *ofn)
@@ -40,6 +54,7 @@ static int try_ups_patch(char *pfn, char *ifn, char *ofn)
 #define writeout8(b) (output < outputend ? *(output++) = b : 0)
 
     int ret = UPS_SUCCESS;
+
     gible_mmap_file_t patchmf, inputmf, outputmf;
     uint8_t *patch, *patchstart, *patchend, *patchcrc;
     uint8_t *input, *inputend, *output, *outputend;
@@ -62,7 +77,7 @@ static int try_ups_patch(char *pfn, char *ifn, char *ofn)
     patchcrc = patchend - 12;
 
     stored_crc[2] = read32le(patchcrc + 8);
-    actual_crc[2] = crc32_calculate(patchstart, patchmf.size - 4);
+    actual_crc[2] = crc32(patchstart, patchmf.size - 4, 0);
 
     if (stored_crc[2] != actual_crc[2])
         error(UPS_PATCH_CRC_NOMATCH);
@@ -86,7 +101,7 @@ static int try_ups_patch(char *pfn, char *ifn, char *ofn)
         fprintf(stderr, "Input file sizes don't match.\n");
 
     stored_crc[0] = read32le(patchcrc);
-    actual_crc[0] = crc32_calculate(input, input_size);
+    actual_crc[0] = crc32(input, input_size, 0);
 
     if (stored_crc[0] != actual_crc[0])
         error(UPS_INPUT_CRC_NOMATCH);
@@ -96,7 +111,7 @@ static int try_ups_patch(char *pfn, char *ifn, char *ofn)
     fputc(0, temp_out);
     fclose(temp_out);
 
-    outputmf = gible_mmap_file_new(ofn, GIBLE_MMAP_WRITE);
+    outputmf = gible_mmap_file_new(ofn, GIBLE_MMAP_READWRITE);
     gible_mmap_open(&outputmf);
 
     if (outputmf.status == -1)
@@ -120,6 +135,10 @@ static int try_ups_patch(char *pfn, char *ifn, char *ofn)
             writeout8(input8() ^ b);
         } while (b);
     }
+
+    actual_crc[1] = crc32(outputmf.handle, outputmf.size, 0);
+    if (stored_crc[1] != actual_crc[1])
+        error(UPS_OUTPUT_CRC_NOMATCH);
 
 #undef error
 #undef patch8

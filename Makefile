@@ -1,5 +1,5 @@
 CC			:= gcc
-CFLAGS		:= -I. -Os
+CFLAGS		:= -I. -Os -ffunction-sections 
 
 HEADERS 	:= $(shell find . -name "*.h")
 SRC			:= $(shell find . -name "*.c")
@@ -14,6 +14,7 @@ $(OBJ_DIR)/%.o: %.c $(SRC) $(HEADERS)
 
 all: $(OBJ_PATHS)
 	$(CC) $(CFLAGS) -o gible $(OBJ_PATHS)
+	@strip gible
 	@echo Done.
 
 .PHONY: all

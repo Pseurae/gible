@@ -20,6 +20,7 @@ enum
     IPS_PATCH_FILE_MMAP,
     IPS_INPUT_FILE_MMAP,
     IPS_OUTPUT_FILE_MMAP,
+    IPS_ERROR_COUNT
 };
 
 #endif /* GIBLE_IPS_H */

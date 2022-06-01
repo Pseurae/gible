@@ -4,9 +4,18 @@
 #include "ips.h"
 #include "../mmap.h"
 
+static const char* ips_error_messages[IPS_ERROR_COUNT] = {
+    [IPS_SUCCESS]="IPS patching successful.",
+    [IPS_INVALID_HEADER]="Invalid header for an IPS file.",
+    [IPS_TOO_SMALL]="Patch file is too small to be an IPS file.",
+    [IPS_PATCH_FILE_MMAP]="Cannot open the given patch file.",
+    [IPS_INPUT_FILE_MMAP]="Cannot open the given input file.",
+    [IPS_OUTPUT_FILE_MMAP]="Cannot open the given output file.",
+};
+
 static int try_ips_patch(char *pfn, char *ifn, char *ofn);
 
-int ips_check(uint8_t *patch)
+inline int ips_check(uint8_t *patch)
 {
     char patch_header[5] = {'P', 'A', 'T', 'C', 'H'};
 
@@ -22,7 +31,8 @@ int ips_check(uint8_t *patch)
 int ips_patch_main(char *pfn, char *ifn, char *ofn)
 {
     int status = try_ips_patch(pfn, ifn, ofn);
-    return 0;
+    fprintf(stderr, "%s\n", ips_error_messages[status]);
+    return status;
 }
 
 static int try_ips_patch(char *pfn, char *ifn, char *ofn)
@@ -95,9 +105,6 @@ static int try_ips_patch(char *pfn, char *ifn, char *ofn)
         else
         {
             size = patch16();
-            if (size)
-                fprintf(stderr, "Size of processed RLE block is 0.");
-
             uint8_t byte = patch8();
 
             while (size--)
