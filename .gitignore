@@ -57,4 +57,5 @@ dkms.conf
 .vscode/
 obj/
 output
+output.**
 gible

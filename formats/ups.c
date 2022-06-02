@@ -2,25 +2,40 @@
 #include <stdint.h>
 
 #include "ups.h"
+#include "../format.h"
 #include "../utils.h"
 #include "../mmap.h"
 #include "../crc32.h"
 
-static const char* ups_error_messages[UPS_ERROR_COUNT] = {
-    [UPS_SUCCESS]="UPS patching successful.",
-    [UPS_INVALID_HEADER]="Invalid header for an UPS file.",
-    [UPS_TOO_SMALL]="Patch file is too small to be an UPS file.",
-    [UPS_PATCH_CRC_NOMATCH]="Patch CRCs don't match.",
-    [UPS_INPUT_CRC_NOMATCH]="Input CRCs don't match.",
-    [UPS_OUTPUT_CRC_NOMATCH]="Output CRCs don't match.",
-    [UPS_PATCH_FILE_MMAP]="Cannot open the given patch file.",
-    [UPS_INPUT_FILE_MMAP]="Cannot open the given input file.",
-    [UPS_OUTPUT_FILE_MMAP]="Cannot open the given output file."
+enum ups_error
+{
+    UPS_SUCCESS = 0,
+    UPS_INVALID_HEADER,
+    UPS_TOO_SMALL,
+    UPS_PATCH_CRC_NOMATCH,
+    UPS_INPUT_CRC_NOMATCH,
+    UPS_OUTPUT_CRC_NOMATCH,
+    UPS_ERROR_COUNT
+};
+
+static const char *ups_error_messages[UPS_ERROR_COUNT];
+static inline int ups_check(uint8_t *patch);
+static int ups_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags);
+
+const patch_format_t ups_patch_format = { "UPS", ups_check, ups_patch, ups_error_messages };
+
+static const char *ups_error_messages[UPS_ERROR_COUNT] = {
+    [UPS_SUCCESS] = "UPS patching successful.",
+    [UPS_INVALID_HEADER] = "Invalid header for an UPS file.",
+    [UPS_TOO_SMALL] = "Patch file is too small to be an UPS file.",
+    [UPS_PATCH_CRC_NOMATCH] = "Patch CRCs don't match.",
+    [UPS_INPUT_CRC_NOMATCH] = "Input CRCs don't match.",
+    [UPS_OUTPUT_CRC_NOMATCH] = "Output CRCs don't match.",
 };
 
 static int try_ups_patch(char *pfn, char *ifn, char *ofn);
 
-inline int ups_check(uint8_t *patch)
+static inline int ups_check(uint8_t *patch)
 {
     char patch_header[4] = {'U', 'P', 'S', '1'};
 
@@ -33,14 +48,7 @@ inline int ups_check(uint8_t *patch)
     return 1;
 }
 
-int ups_patch_main(char *pfn, char *ifn, char *ofn)
-{
-    int status = try_ups_patch(pfn, ifn, ofn);
-    fprintf(stderr, "%s\n", ups_error_messages[status]);
-    return status;
-}
-
-static int try_ups_patch(char *pfn, char *ifn, char *ofn)
+static int ups_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
 {
 #define error(i)  \
     do            \
@@ -65,8 +73,8 @@ static int try_ups_patch(char *pfn, char *ifn, char *ofn)
     patchmf = gible_mmap_file_new(pfn, GIBLE_MMAP_READ);
     gible_mmap_open(&patchmf);
 
-    if (patchmf.status == -1)
-        error(UPS_PATCH_FILE_MMAP);
+    if (!patchmf.status)
+        error(ERROR_PATCH_FILE_MMAP);
 
     if (patchmf.size < 18)
         error(UPS_TOO_SMALL);
@@ -91,8 +99,8 @@ static int try_ups_patch(char *pfn, char *ifn, char *ofn)
     inputmf = gible_mmap_file_new(ifn, GIBLE_MMAP_READ);
     gible_mmap_open(&inputmf);
 
-    if (inputmf.status == -1)
-        error(UPS_INPUT_FILE_MMAP);
+    if (!inputmf.status)
+        error(ERROR_INPUT_FILE_MMAP);
 
     input = inputmf.handle;
     inputend = input + inputmf.size;
@@ -106,16 +114,11 @@ static int try_ups_patch(char *pfn, char *ifn, char *ofn)
     if (stored_crc[0] != actual_crc[0])
         error(UPS_INPUT_CRC_NOMATCH);
 
-    FILE *temp_out = fopen(ofn, "w");
-    fseek(temp_out, output_size - 1, SEEK_SET);
-    fputc(0, temp_out);
-    fclose(temp_out);
-
     outputmf = gible_mmap_file_new(ofn, GIBLE_MMAP_READWRITE);
-    gible_mmap_open(&outputmf);
+    gible_mmap_new(&outputmf, output_size);
 
-    if (outputmf.status == -1)
-        error(UPS_OUTPUT_FILE_MMAP);
+    if (!outputmf.status)
+        error(ERROR_OUTPUT_FILE_MMAP);
 
     output = outputmf.handle;
     outputend = output + outputmf.size;

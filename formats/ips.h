@@ -7,24 +7,9 @@ IPS patches have 24 bit integers for storing offsets and
 the size of the input and output file to 16MBs.
 */
 
-#include <stdint.h>
+#include "../format.h"
 
-int ips_check(uint8_t *patch);
-int ips32_check(uint8_t *patch);
-
-int ips_patch_main(char *pfn, char *ifn, char *ofn);
-int ips32_patch_main(char *pfn, char *ifn, char *ofn);
-
-enum
-{
-    IPS_SUCCESS = 0,
-    IPS_INVALID_HEADER,
-    IPS_TOO_SMALL,
-    IPS_PATCH_FILE_MMAP,
-    IPS_INPUT_FILE_MMAP,
-    IPS_OUTPUT_FILE_MMAP,
-    IPS_NO_FOOTER,
-    IPS_ERROR_COUNT
-};
+extern const patch_format_t ips_patch_format;
+extern const patch_format_t ips32_patch_format;
 
 #endif /* GIBLE_IPS_H */

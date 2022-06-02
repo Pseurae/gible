@@ -5,14 +5,23 @@
 
 #include "utils.h"
 #include "mmap.h"
+#include "format.h"
 #include "formats/ips.h"
 #include "formats/ups.h"
 #include "formats/bps.h"
 
 #define HEADER_REGION_LEN 50
 
+static const patch_format_t *patch_formats[] = {
+    &ips_patch_format,
+    &ips32_patch_format,
+    &ups_patch_format,
+    &bps_patch_format
+};
+
 static void gible_main(int argc, char *argv[]);
 static void gible_usage(const char *execname);
+static int gible_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags);
 
 int main(int argc, char *argv[])
 {
@@ -22,17 +31,14 @@ int main(int argc, char *argv[])
 
 static void gible_main(int argc, char *argv[])
 {
-    if (argc < 3)
+    if (argc < 4) {
         gible_usage(*argv);
+        exit(EXIT_SUCCESS);
+    }
 
     char *patchfile = argv[1];
     char *inputfile = argv[2];
-    char *outputfile;
-
-    if (argc < 4)
-        outputfile = "output";
-    else
-        outputfile = argv[3];
+    char *outputfile = argv[3];
 
     if (strcmp(patchfile, inputfile) == 0)
     {
@@ -64,25 +70,11 @@ static void gible_main(int argc, char *argv[])
         return;
     }
 
-    uint8_t header_buf[HEADER_REGION_LEN];
-    FILE *p = fopen(patchfile, "r");
-    fread(header_buf, sizeof(char), HEADER_REGION_LEN, p);
-    fclose(p);
 
-    int ret = -1;
-
-    if (ips_check(header_buf))
-        ret = ips_patch_main(patchfile, inputfile, outputfile);
-    if (ips32_check(header_buf))
-        ret = ips32_patch_main(patchfile, inputfile, outputfile);
-    if (ups_check(header_buf))
-        ret = ups_patch_main(patchfile, inputfile, outputfile);
-    if (bps_check(header_buf))
-        ret = bps_patch_main(patchfile, inputfile, outputfile);
+    patch_flags_t flags;
+    int ret = gible_patch(patchfile, inputfile, outputfile, &flags);
 
     if (ret == -1) fprintf(stderr, "Unsupported patch type.\n");
-    else if (ret == 0) fprintf(stderr, "Successfully patched files.\n");
-    else fprintf(stderr, "Failed to patch.\n");
 
     return;
 }
@@ -92,8 +84,37 @@ static void gible_usage(const char *execname)
     fprintf(
         stderr,
         "Usage:\n"
-        "%s <patch> <input>\n"
         "%s <patch> <input> <output>\n",
-        execname, execname);
-    exit(EXIT_SUCCESS);
+        execname);
+}
+
+static const char *mmap_errors[] = {
+    "Cannot open the given patch file.",
+    "Cannot open the given input file.",
+    "Cannot open the given output file.",
+};
+
+static int gible_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
+{
+    uint8_t header_buf[HEADER_REGION_LEN];
+    FILE *p = fopen(pfn, "r");
+    fread(header_buf, sizeof(char), HEADER_REGION_LEN, p);
+    fclose(p);
+
+    for (int i = 0; i < 4; i++) {
+        const patch_format_t *format = patch_formats[i];
+
+        if (format->check(header_buf)) { 
+            int ret = format->main(pfn, ifn, ofn, flags);
+
+            if (ret < ERROR_OUTPUT_FILE_MMAP)
+                fprintf(stderr, "%s\n", format->error_msgs[ret]);
+            else 
+                fprintf(stderr, "%s\n", mmap_errors[INT16_MAX - ret - 1]);
+
+            return ret;
+        }
+    }
+
+    return -1;
 }

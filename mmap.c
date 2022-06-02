@@ -21,7 +21,7 @@
 static void gible_mmap_file_init(gible_mmap_file_t *f)
 {
     f->handle = NULL;
-    f->status = -1;
+    f->status = 0;
 }
 
 gible_mmap_file_t gible_mmap_file_new(char *fn, gible_mmap_mode_t mode)
@@ -50,8 +50,21 @@ static const int gible_mmap_flags[GIBLE_MMAP_MODE_COUNT] = {
     [GIBLE_MMAP_WRITEREAD] = PROT_READ | PROT_WRITE,
 };
 
+inline int gible_mmap_new(gible_mmap_file_t *f, size_t size)
+{
+#define error() (f->status = 0, 0)
+    FILE *temp_out = fopen(f->fn, "w");
+    fseek(temp_out, size - 1, SEEK_SET);
+    fputc(0, temp_out);
+    fclose(temp_out);
+    return gible_mmap_open(f);
+#undef error
+}
+
 int gible_mmap_open(gible_mmap_file_t *f)
 {
+    if (f->status) return 0;
+
     int open_flags = gible_open_flags[f->mode];
     int mmap_flags = gible_mmap_flags[f->mode];
 

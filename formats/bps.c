@@ -2,26 +2,45 @@
 #include <stdint.h>
 
 #include "bps.h"
+#include "../format.h"
 #include "../utils.h"
 #include "../mmap.h"
 #include "../crc32.h"
 
-static const char* bps_error_messages[BPS_ERROR_COUNT] = {
-    [BPS_SUCCESS]="BPS patching successful.",
-    [BPS_INVALID_HEADER]="Invalid header for a BPS file.",
-    [BPS_TOO_SMALL]="Patch file is too small to be a BPS file.",
-    [BPS_INVALID_ACTION]="Invalid BPS patching action.",
-    [BPS_PATCH_CRC_NOMATCH]="Patch CRCs don't match.",
-    [BPS_INPUT_CRC_NOMATCH]="Input CRCs don't match.",
-    [BPS_OUTPUT_CRC_NOMATCH]="Output CRCs don't match.",
-    [BPS_PATCH_FILE_MMAP]="Cannot open the given patch file.",
-    [BPS_INPUT_FILE_MMAP]="Cannot open the given input file.",
-    [BPS_OUTPUT_FILE_MMAP]="Cannot open the given output file."
+enum bps_action
+{
+    BPS_SOURCE_READ,
+    BPS_TARGET_READ,
+    BPS_SOURCE_COPY,
+    BPS_TARGET_COPY
 };
 
-static int try_bps_patch(char *pfn, char *ifn, char *ofn);
+enum bps_error
+{
+    BPS_SUCCESS = 0,
+    BPS_INVALID_HEADER,
+    BPS_TOO_SMALL,
+    BPS_INVALID_ACTION,
+    BPS_PATCH_CRC_NOMATCH,
+    BPS_INPUT_CRC_NOMATCH,
+    BPS_OUTPUT_CRC_NOMATCH,
+    BPS_ERROR_COUNT
+};
 
-inline int bps_check(uint8_t *patch)
+static const char *bps_error_messages[BPS_ERROR_COUNT];
+static inline int bps_check(uint8_t *patch);
+static int bps_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags);
+
+const patch_format_t bps_patch_format = { "BPS", bps_check, bps_patch, bps_error_messages };
+
+static const char *bps_error_messages[BPS_ERROR_COUNT] = {
+    [BPS_SUCCESS] = "BPS patching successful.",
+    [BPS_INVALID_HEADER] = "Invalid header for a BPS file.",
+    [BPS_TOO_SMALL] = "Patch file is too small to be a BPS file.",
+    [BPS_INVALID_ACTION] = "Invalid BPS patching action.",
+};
+
+static inline int bps_check(uint8_t *patch)
 {
     char patch_header[4] = {'B', 'P', 'S', '1'};
     for (int i = 0; i < 4; i++)
@@ -32,22 +51,7 @@ inline int bps_check(uint8_t *patch)
     return 1;
 }
 
-int bps_patch_main(char *pfn, char *ifn, char *ofn)
-{
-    int status = try_bps_patch(pfn, ifn, ofn);
-    fprintf(stderr, "%s\n", bps_error_messages[status]);
-    return status;
-}
-
-enum bps_action
-{
-    BPS_SOURCE_READ,
-    BPS_TARGET_READ,
-    BPS_SOURCE_COPY,
-    BPS_TARGET_COPY
-};
-
-static int try_bps_patch(char *pfn, char *ifn, char *ofn)
+static int bps_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
 {
 #define error(i)  \
     do            \
@@ -75,7 +79,7 @@ static int try_bps_patch(char *pfn, char *ifn, char *ofn)
     gible_mmap_open(&patchmf);
 
     if (patchmf.status == -1)
-        error(BPS_PATCH_FILE_MMAP);
+        error(ERROR_PATCH_FILE_MMAP);
 
     if (patchmf.size < 19)
         error(BPS_TOO_SMALL);
@@ -100,7 +104,7 @@ static int try_bps_patch(char *pfn, char *ifn, char *ofn)
     inputmf = gible_mmap_file_new(ifn, GIBLE_MMAP_READ);
     gible_mmap_open(&inputmf);
     if (inputmf.status == -1)
-        error(BPS_INPUT_FILE_MMAP);
+        error(ERROR_INPUT_FILE_MMAP);
 
     input = inputmf.handle;
     inputstart = inputmf.handle;
@@ -118,16 +122,11 @@ static int try_bps_patch(char *pfn, char *ifn, char *ofn)
     if (stored_crc[0] != actual_crc[0])
         error(BPS_INPUT_CRC_NOMATCH);
 
-    FILE *temp_out = fopen(ofn, "w");
-    fseek(temp_out, output_size - 1, SEEK_SET);
-    fputc(0, temp_out);
-    fclose(temp_out);
-
     outputmf = gible_mmap_file_new(ofn, GIBLE_MMAP_READWRITE);
-    gible_mmap_open(&outputmf);
+    gible_mmap_new(&outputmf, output_size);
 
-    if (outputmf.status == -1)
-        error(BPS_OUTPUT_FILE_MMAP);
+    if (!outputmf.status)
+        error(ERROR_OUTPUT_FILE_MMAP);
 
     output = outputmf.handle;
     outputstart = outputmf.handle;

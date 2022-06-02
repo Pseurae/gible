@@ -24,6 +24,7 @@ typedef struct gible_mmap_file
 } gible_mmap_file_t;
 
 gible_mmap_file_t gible_mmap_file_new(char *fn, gible_mmap_mode_t mode);
+int gible_mmap_new(gible_mmap_file_t* f, size_t size);
 int gible_mmap_open(gible_mmap_file_t *f);
 void gible_mmap_close(gible_mmap_file_t *f);
 

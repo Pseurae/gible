@@ -2,22 +2,38 @@
 #include <stdint.h>
 
 #include "ips.h"
+#include "../format.h"
 #include "../mmap.h"
 
-static const char* ips_error_messages[IPS_ERROR_COUNT] = {
-    [IPS_SUCCESS]="IPS patching successful.",
-    [IPS_INVALID_HEADER]="Invalid header for an IPS file.",
-    [IPS_TOO_SMALL]="Patch file is too small to be an IPS file.",
-    [IPS_PATCH_FILE_MMAP]="Cannot open the given patch file.",
-    [IPS_INPUT_FILE_MMAP]="Cannot open the given input file.",
-    [IPS_OUTPUT_FILE_MMAP]="Cannot open the given output file.",
-    [IPS_NO_FOOTER]="EOF footer not found."
+enum ips_error
+{
+    IPS_SUCCESS = 0,
+    IPS_INVALID_HEADER,
+    IPS_TOO_SMALL,
+    IPS_PATCH_FILE_MMAP,
+    IPS_INPUT_FILE_MMAP,
+    IPS_OUTPUT_FILE_MMAP,
+    IPS_NO_FOOTER,
+    IPS_ERROR_COUNT
 };
 
-static int try_ips_patch(char *pfn, char *ifn, char *ofn);
-static int try_ips32_patch(char *pfn, char *ifn, char *ofn);
+static const char *ips_error_messages[IPS_ERROR_COUNT];
+static inline int ips_check(uint8_t *patch);
+static inline int ips32_check(uint8_t *patch);
+static int ips_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags);
+static int ips32_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags);
 
-inline int ips_check(uint8_t *patch)
+const patch_format_t ips_patch_format = { "IPS", ips_check, ips_patch, ips_error_messages };
+const patch_format_t ips32_patch_format = { "IPS32", ips32_check, ips32_patch, ips_error_messages };
+
+static const char *ips_error_messages[IPS_ERROR_COUNT] = {
+    [IPS_SUCCESS] = "IPS patching successful.",
+    [IPS_INVALID_HEADER] = "Invalid header for an IPS file.",
+    [IPS_TOO_SMALL] = "Patch file is too small to be an IPS file.",
+    [IPS_NO_FOOTER] = "EOF footer not found."
+};
+
+static inline int ips_check(uint8_t *patch)
 {
     char patch_header[5] = {'P', 'A', 'T', 'C', 'H'};
 
@@ -30,7 +46,7 @@ inline int ips_check(uint8_t *patch)
     return 1;
 }
 
-inline int ips32_check(uint8_t *patch)
+static inline int ips32_check(uint8_t *patch)
 {
     char patch_header[5] = {'I', 'P', 'S', '3', '2'};
 
@@ -43,14 +59,7 @@ inline int ips32_check(uint8_t *patch)
     return 1;
 }
 
-int ips_patch_main(char *pfn, char *ifn, char *ofn)
-{
-    int status = try_ips_patch(pfn, ifn, ofn);
-    fprintf(stderr, "%s\n", ips_error_messages[status]);
-    return status;
-}
-
-static int try_ips_patch(char *pfn, char *ifn, char *ofn)
+static int ips_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
 {
 #define error(i)  \
     do            \
@@ -68,7 +77,7 @@ static int try_ips_patch(char *pfn, char *ifn, char *ofn)
     gible_mmap_open(&patchmf);
 
     if (patchmf.status == -1)
-        error(IPS_PATCH_FILE_MMAP);
+        error(ERROR_PATCH_FILE_MMAP);
 
     if (patchmf.size < 8)
         error(IPS_TOO_SMALL);
@@ -87,7 +96,7 @@ static int try_ips_patch(char *pfn, char *ifn, char *ofn)
     gible_mmap_open(&inputmf);
 
     if (inputmf.status == -1)
-        error(IPS_INPUT_FILE_MMAP);
+        error(ERROR_INPUT_FILE_MMAP);
 
     input = inputmf.handle;
 
@@ -100,8 +109,8 @@ static int try_ips_patch(char *pfn, char *ifn, char *ofn)
     outputmf = gible_mmap_file_new(ofn, GIBLE_MMAP_WRITE);
     gible_mmap_open(&outputmf);
 
-    if (outputmf.status == -1)
-        error(IPS_OUTPUT_FILE_MMAP);
+    if (!outputmf.status)
+        error(ERROR_OUTPUT_FILE_MMAP);
 
     output = outputmf.handle;
 
@@ -143,14 +152,7 @@ end:
     return ret;
 }
 
-int ips32_patch_main(char *pfn, char *ifn, char *ofn)
-{
-    int status = try_ips32_patch(pfn, ifn, ofn);
-    fprintf(stderr, "%s\n", ips_error_messages[status]);
-    return status;
-}
-
-static int try_ips32_patch(char *pfn, char *ifn, char *ofn)
+static int ips32_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
 {
 #define error(i)  \
     do            \
@@ -200,7 +202,7 @@ static int try_ips32_patch(char *pfn, char *ifn, char *ofn)
     outputmf = gible_mmap_file_new(ofn, GIBLE_MMAP_WRITE);
     gible_mmap_open(&outputmf);
 
-    if (outputmf.status == -1)
+    if (!outputmf.status)
         error(IPS_OUTPUT_FILE_MMAP);
 
     output = outputmf.handle;
