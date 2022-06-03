@@ -62,15 +62,14 @@ static int bps_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
 
 #define patch8() (patch < patchend ? *(patch++) : 0)
 #define input8() (input < inputend ? *(input++) : 0)
-#define writeout8(b) (output < outputend ? *(output++) = b : 0)
 #define sign(b) ((b & 1 ? -1 : +1) * (b >> 1))
 
     int ret = BPS_SUCCESS;
 
     gible_mmap_file_t patchmf, inputmf, outputmf;
     uint8_t *patch, *patchstart, *patchend, *patchcrc;
-    uint8_t *input, *inputstart, *inputend;
-    uint8_t *output, *outputstart, *outputend;
+    uint8_t *input;
+    uint8_t *output, *outputstart;
 
     uint32_t actual_crc[3] = {0, 0, 0};
     uint32_t stored_crc[3] = {0, 0, 0};
@@ -98,8 +97,8 @@ static int bps_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
     if (patch8() != 'B' || patch8() != 'P' || patch8() != 'S' || patch8() != '1')
         error(BPS_INVALID_HEADER);
 
-    size_t input_size = read_vint(&patch);
-    size_t output_size = read_vint(&patch);
+    size_t input_size = readvint(&patch);
+    size_t output_size = readvint(&patch);
 
     inputmf = gible_mmap_file_new(ifn, GIBLE_MMAP_READ);
     gible_mmap_open(&inputmf);
@@ -107,14 +106,9 @@ static int bps_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
         error(ERROR_INPUT_FILE_MMAP);
 
     input = inputmf.handle;
-    inputstart = inputmf.handle;
-    inputend = input + inputmf.size;
 
     if (inputmf.size != input_size)
-    {
         fprintf(stderr, "Input file sizes don't match.\n");
-        fprintf(stderr, "%zu %zu\n", input_size, inputmf.size);
-    }
 
     stored_crc[0] = read32le(patchcrc);
     actual_crc[0] = crc32(input, input_size, 0);
@@ -130,11 +124,8 @@ static int bps_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
 
     output = outputmf.handle;
     outputstart = outputmf.handle;
-    outputend = output + outputmf.size;
 
-    stored_crc[1] = read32le(patchcrc + 4);
-
-    size_t metadata_size = read_vint(&patch);
+    size_t metadata_size = readvint(&patch);
     patch += metadata_size;
 
     size_t output_off = 0;
@@ -143,7 +134,7 @@ static int bps_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
 
     while (patch < patchcrc)
     {
-        size_t data = read_vint(&patch);
+        size_t data = readvint(&patch);
         uint64_t action = data & 3;
         uint64_t length = (data >> 2) + 1;
 
@@ -163,7 +154,7 @@ static int bps_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
             break;
 
         case BPS_SOURCE_COPY:
-            data = read_vint(&patch);
+            data = readvint(&patch);
             source_rel_off += sign(data);
 
             while (length--)
@@ -171,7 +162,7 @@ static int bps_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
             break;
 
         case BPS_TARGET_COPY:
-            data = read_vint(&patch);
+            data = readvint(&patch);
             target_rel_off += sign(data);
 
             while (length--)
@@ -183,14 +174,16 @@ static int bps_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
         }
     }
 
+    stored_crc[1] = read32le(patchcrc + 4);
     actual_crc[1] = crc32(outputstart, outputmf.size, 0);
+
     if (stored_crc[1] != actual_crc[1])
         error(BPS_OUTPUT_CRC_NOMATCH);
 
 #undef error
 #undef patch8
 #undef input8
-#undef writeout8
+#undef sign
 
 end:
     gible_mmap_close(&patchmf);

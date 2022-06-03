@@ -19,7 +19,7 @@ inline uint32_t read32le(uint8_t *ptr)
 	return ptr[0] | ptr[1] << 8 | ptr[2] << 16 | ptr[3] << 24;
 }
 
-inline size_t read_vint(uint8_t **stream)
+inline size_t readvint(uint8_t **stream)
 {
 	size_t result = 0, shift = 0;
 

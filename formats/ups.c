@@ -33,8 +33,6 @@ static const char *ups_error_messages[UPS_ERROR_COUNT] = {
     [UPS_OUTPUT_CRC_NOMATCH] = "Output CRCs don't match.",
 };
 
-static int try_ups_patch(char *pfn, char *ifn, char *ofn);
-
 static inline int ups_check(uint8_t *patch)
 {
     char patch_header[4] = {'U', 'P', 'S', '1'};
@@ -93,8 +91,8 @@ static int ups_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
     if (patch8() != 'U' || patch8() != 'P' || patch8() != 'S' || patch8() != '1')
         error(UPS_INVALID_HEADER);
 
-    size_t input_size = read_vint(&patch);
-    size_t output_size = read_vint(&patch);
+    size_t input_size = readvint(&patch);
+    size_t output_size = readvint(&patch);
 
     inputmf = gible_mmap_file_new(ifn, GIBLE_MMAP_READ);
     gible_mmap_open(&inputmf);
@@ -112,7 +110,7 @@ static int ups_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
     actual_crc[0] = crc32(input, input_size, 0);
 
     if (stored_crc[0] != actual_crc[0])
-        error(UPS_INPUT_CRC_NOMATCH);
+        error(UPS_INPUT_CRC_NOMATCH);   
 
     outputmf = gible_mmap_file_new(ofn, GIBLE_MMAP_READWRITE);
     gible_mmap_new(&outputmf, output_size);
@@ -123,11 +121,9 @@ static int ups_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
     output = outputmf.handle;
     outputend = output + outputmf.size;
 
-    stored_crc[1] = read32le(patchcrc + 4);
-
     while (patch < patchcrc)
     {
-        size_t offset = read_vint(&patch);
+        size_t offset = readvint(&patch);
         while (offset--)
             writeout8(input8());
 
@@ -139,7 +135,9 @@ static int ups_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
         } while (b);
     }
 
+    stored_crc[1] = read32le(patchcrc + 4);
     actual_crc[1] = crc32(outputmf.handle, outputmf.size, 0);
+
     if (stored_crc[1] != actual_crc[1])
         error(UPS_OUTPUT_CRC_NOMATCH);
 

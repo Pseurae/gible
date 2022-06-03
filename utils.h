@@ -5,7 +5,7 @@
 #include <stdlib.h>
 
 int file_exists(const char *fn);
-size_t read_vint(uint8_t **stream);
+size_t readvint(uint8_t **stream);
 uint32_t read32le(uint8_t *ptr);
 
 #endif /* GIBLE_UTIL_H */

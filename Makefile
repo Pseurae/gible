@@ -1,23 +1,26 @@
 CC			:= gcc
-CFLAGS		:= -I. -Os -ffunction-sections 
+CFLAGS		:= -I. -O3 -ffunction-sections -Wall -Wextra 
 
 HEADERS 	:= $(shell find . -name "*.h")
 SRC			:= $(shell find . -name "*.c")
 
-OBJ_DIR 	:= obj
+OBJ_DIR 	:= build
 OBJ_NAMES	:= $(SRC:.c=.o)
 OBJ_PATHS	:= $(OBJ_NAMES:./%=$(OBJ_DIR)/%)
+DEP_NAMES	:= $(OBJ_PATHS:%.o=%.d)
 
-$(OBJ_DIR)/%.o: %.c $(SRC) $(HEADERS)
+$(OBJ_DIR)/%.o: %.c
 	@mkdir -p $(shell dirname "$@")
-	$(CC) $(CFLAGS) -c -o $@ $<
+	$(CC) $(CFLAGS) -MMD -c $< -o $@
 
-all: $(OBJ_PATHS)
+all: $(DEP_PATHS) $(OBJ_PATHS)
 	$(CC) $(CFLAGS) -o gible $(OBJ_PATHS)
 	@strip gible
 	@echo Done.
 
 .PHONY: all
+
+-include $(DEP_NAMES)
 
 clean:
 	rm -rf $(OBJ_DIR)
