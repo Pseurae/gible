@@ -4,7 +4,7 @@
 #include "ups.h"
 #include "../format.h"
 #include "../utils.h"
-#include "../mmap.h"
+#include "../filemap.h"
 #include "../crc32.h"
 
 enum ups_error

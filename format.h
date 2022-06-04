@@ -2,7 +2,7 @@
 #define GIBLE_FORMAT_H
 
 #include <stdint.h>
-#include "mmap.h"
+#include "filemap.h"
 
 #define ERROR_PATCH_FILE_MMAP (INT16_MAX - 1)
 #define ERROR_INPUT_FILE_MMAP (INT16_MAX - 2)

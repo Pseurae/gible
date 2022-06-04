@@ -3,7 +3,7 @@
 
 #include "ips.h"
 #include "../format.h"
-#include "../mmap.h"
+#include "../filemap.h"
 
 enum ips_error
 {

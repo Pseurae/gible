@@ -16,7 +16,7 @@
 #include <sys/types.h>
 #endif
 
-#include "mmap.h"
+#include "filemap.h"
 
 static void gible_mmap_file_init(gible_mmap_file_t *f)
 {

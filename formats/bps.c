@@ -4,7 +4,7 @@
 #include "bps.h"
 #include "../format.h"
 #include "../utils.h"
-#include "../mmap.h"
+#include "../filemap.h"
 #include "../crc32.h"
 
 enum bps_action

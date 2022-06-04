@@ -7,7 +7,7 @@
 #include "argc.h"
 
 #include "utils.h"
-#include "mmap.h"
+#include "filemap.h"
 #include "format.h"
 #include "formats/ips.h"
 #include "formats/ups.h"
