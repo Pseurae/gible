@@ -17,7 +17,8 @@ extern "C"
 #define ARGC_OPTION_FLAGS_INVERT (1 << 0)
 
 #define ARGC_PARSER_FLAGS_STOP_UNKNOWN (1 << 0)
-#define ARGC_PARSER_FLAGS_NO_POSITIONAL (1 << 1)
+#define ARGC_PARSER_FLAGS_HELP_ON_UNKNOWN (1 << 1)
+#define ARGC_PARSER_FLAGS_NO_POSITIONAL (1 << 2)
 
 #define ARGC_OPT_STRING(...) \
     { ARGC_TYPE_STRING, __VA_ARGS__ }
@@ -35,7 +36,10 @@ extern "C"
     { ARGC_TYPE_FLOAT, __VA_ARGS__ }
 
 #define ARGC_OPT_END() \
-    { ARGC_TYPE_END, 0, NULL, NULL, 0, NULL, 0 }
+    { ARGC_TYPE_END, 0, NULL, NULL, 0, NULL, 0, NULL }
+
+#define ARGC_OPT_HELP() \
+    { ARGC_TYPE_CALLBACK, 'h', "help", NULL, 0, NULL, 0, argc_parser_help_callback }
 
 enum argc_type
 {
@@ -44,8 +48,14 @@ enum argc_type
     ARGC_TYPE_FLAG,
     ARGC_TYPE_BOOLEAN,
     ARGC_TYPE_INTEGER,
+    ARGC_TYPE_CALLBACK,
     ARGC_TYPE_FLOAT,
 };
+
+struct argc_option;
+struct argc_parser;
+
+typedef void (*argc_option_callback)(struct argc_parser *, struct argc_option*);
 
 struct argc_option
 {
@@ -58,6 +68,8 @@ struct argc_option
 
     const char *desc;
     int flags;
+
+    argc_option_callback callback;
 };
 
 struct argc_parser
@@ -67,7 +79,7 @@ struct argc_parser
     char **positional;
     int pcount;
     const char *desc;
-    const char *usage;
+    const char **usage;
 
     int flags;
 };
@@ -77,6 +89,7 @@ struct argc_ctx
     int argc;
     char **argv;
     char *curropt;
+    struct argc_parser *par;
 };
 
 struct argc_parser argc_parser_new(const char *execname, struct argc_option *options, int flags)
@@ -91,7 +104,7 @@ struct argc_parser argc_parser_new(const char *execname, struct argc_option *opt
     return par;
 }
 
-void argc_parser_set_messages(struct argc_parser *par, const char *desc, const char *usage)
+void argc_parser_set_messages(struct argc_parser *par, const char *desc, const char **usage)
 {
     par->desc = desc;
     par->usage = usage;
@@ -173,6 +186,10 @@ int argc_parser_execute(struct argc_ctx *ctx, struct argc_option *option)
 
             break; 
 
+        case ARGC_TYPE_CALLBACK:
+            option->callback(ctx->par, option);
+            break;
+
         default:
             return -1;
     }
@@ -200,16 +217,40 @@ int argc_parser_long_opt(struct argc_ctx *ctx, struct argc_option *options)
     return 0;
 }
 
-int argc_parser_usage(struct argc_parser *par)
+int argc_parser_print_usage(struct argc_parser *par)
 {
     if (par->usage)
-        fprintf(stderr, "%s\n", par->usage);
+    {
+        fprintf(stderr, "usage: %s %s\n", par->execname, par->usage[0]);
 
-    fputc('\n', stderr);
+        for (const char **i = par->usage + 1; *i; i++)
+            fprintf(stderr, "       %s %s\n", par->execname, *i);
+    }
 
+    return 1;
+}
+
+int argc_parser_print_description(struct argc_parser *par)
+{
     if (par->desc)
         fprintf(stderr, "%s\n", par->desc);
+
     return 1;
+}
+
+int argc_parser_print_help(struct argc_parser *par)
+{
+    argc_parser_print_description(par);
+    if (par->usage) fputc('\n', stderr);
+    argc_parser_print_usage(par);
+    return 1;
+}
+
+void argc_parser_help_callback(struct argc_parser *par, struct argc_option *option)
+{
+    argc_parser_print_help(par);
+    (void)option; // Silence GCC warning
+    exit(EXIT_SUCCESS);
 }
 
 int argc_parser_parse(struct argc_parser *par, int argc, char **argv)
@@ -224,6 +265,7 @@ int argc_parser_parse(struct argc_parser *par, int argc, char **argv)
     struct argc_ctx ctx;
     ctx.argc = argc;
     ctx.argv = argv;
+    ctx.par = par;
 
     for (;ctx.argc; ctx.argc--, ctx.argv++)
     {
@@ -261,7 +303,9 @@ unknown_opt:
         else
             fprintf(stderr, "%s: illegal option -- %s.\n", par->execname, *ctx.argv);
 
-        argc_parser_usage(par);
+        if (par->flags & ARGC_PARSER_FLAGS_HELP_ON_UNKNOWN)
+            argc_parser_print_usage(par);
+
         if (par->flags & ARGC_PARSER_FLAGS_STOP_UNKNOWN)
             return 0;
     }
