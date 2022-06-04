@@ -19,10 +19,10 @@ typedef struct patch_flags
     // CRC byte:
     // xyz0 0000
     // x - patch, y - input, z - output
-    uint8_t strict_crc; // Aborts patching on checksum mismatch
-    uint8_t ignore_crc; // Don't even bother with checksum
+    uint8_t strict_crc;     // Aborts patching on checksum mismatch
+    uint8_t ignore_crc;     // Don't even bother with checksum
     uint8_t use_filebuffer; // Not implemented. Yet.
-    uint8_t verbose; // Is the output verbose?
+    uint8_t verbose;        // Is the output verbose?
 } patch_flags_t;
 
 typedef int (*patch_check)(uint8_t *);

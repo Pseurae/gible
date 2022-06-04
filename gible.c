@@ -83,15 +83,15 @@ static void gible_main(int argc, char *argv[])
 
         ARGC_OPT_FLAG('f', "strict-patch-crc", &flags.strict_crc, FLAG_CRC_PATCH, "Aborts on patch crc mismatch.", 0, NULL),
         ARGC_OPT_FLAG('g', "strict-input-crc", &flags.strict_crc, FLAG_CRC_INPUT, "Aborts on input crc mismatch.", 0, NULL),
-        ARGC_OPT_FLAG('j', "strict-output-crc", &flags.strict_crc, FLAG_CRC_OUTPUT, "Aborts on output crc mismatch (Not much useful).", 0, NULL),
+        ARGC_OPT_FLAG('j', "strict-output-crc", &flags.strict_crc, FLAG_CRC_OUTPUT, "Aborts on output crc mismatch (Not really useful).", 0, NULL),
         ARGC_OPT_FLAG('k', "strict-crc", &flags.strict_crc, FLAG_CRC_ALL, "Ignores all crc checks.", 0, NULL),
 
-        ARGC_OPT_BOOLEAN('b', "prefer-filebuffer", &flags.verbose, 0, "Uses filebuffer mode over mmap.", 0, NULL),
-        ARGC_OPT_BOOLEAN('v', "verbose", &flags.verbose, 0, "Verbose mode.", 0, NULL),
+        // ARGC_OPT_BOOLEAN('b', "prefer-filebuffer", &flags.verbose, 0, "Uses filebuffer mode over mmap.", 0, NULL),
+        // ARGC_OPT_BOOLEAN('v', "verbose", &flags.verbose, 0, "Verbose mode.", 0, NULL),
         ARGC_OPT_END()
     };
 
-    struct argc_parser parser = argc_parser_new(*argv, options, ARGC_PARSER_FLAGS_STOP_UNKNOWN | ARGC_PARSER_FLAGS_HELP_ON_UNKNOWN);
+    struct argc_parser parser = argc_parser_new(*argv + 2, options, ARGC_PARSER_FLAGS_STOP_UNKNOWN | ARGC_PARSER_FLAGS_HELP_ON_UNKNOWN);
     argc_parser_set_messages(&parser, gible_description, gible_usage);
     if (!argc_parser_parse(&parser, argc - 1, argv + 1)) return;
 

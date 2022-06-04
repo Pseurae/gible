@@ -1,5 +1,5 @@
 CC			:= gcc
-CFLAGS		:= -I. -O3 -ffunction-sections -Wall -Wextra 
+CFLAGS		:= -I. -O3 -ffunction-sections -Wall -Wextra -MMD
 
 HEADERS 	:= $(shell find . -name "*.h")
 SRC			:= $(shell find . -name "*.c")
@@ -11,7 +11,7 @@ DEP_NAMES	:= $(OBJ_PATHS:%.o=%.d)
 
 $(OBJ_DIR)/%.o: %.c
 	@mkdir -p $(shell dirname "$@")
-	$(CC) $(CFLAGS) -MMD -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 
 all: $(DEP_PATHS) $(OBJ_PATHS)
 	$(CC) $(CFLAGS) -o gible $(OBJ_PATHS)

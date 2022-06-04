@@ -10,9 +10,6 @@ enum ips_error
     IPS_SUCCESS = 0,
     IPS_INVALID_HEADER,
     IPS_TOO_SMALL,
-    IPS_PATCH_FILE_MMAP,
-    IPS_INPUT_FILE_MMAP,
-    IPS_OUTPUT_FILE_MMAP,
     IPS_NO_FOOTER,
     IPS_ERROR_COUNT
 };
@@ -172,7 +169,7 @@ static int ips32_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
     gible_mmap_open(&patchmf);
 
     if (patchmf.status == -1)
-        error(IPS_PATCH_FILE_MMAP);
+        error(ERROR_PATCH_FILE_MMAP);
 
     if (patchmf.size < 9)
         error(IPS_TOO_SMALL);
@@ -191,7 +188,7 @@ static int ips32_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
     gible_mmap_open(&inputmf);
 
     if (inputmf.status == -1)
-        error(IPS_INPUT_FILE_MMAP);
+        error(ERROR_INPUT_FILE_MMAP);
 
     input = inputmf.handle;
 
@@ -205,7 +202,7 @@ static int ips32_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
     gible_mmap_open(&outputmf);
 
     if (!outputmf.status)
-        error(IPS_OUTPUT_FILE_MMAP);
+        error(ERROR_OUTPUT_FILE_MMAP);
 
     output = outputmf.handle;
 
