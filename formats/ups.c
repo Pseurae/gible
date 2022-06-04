@@ -22,7 +22,7 @@ static const char *ups_error_messages[UPS_ERROR_COUNT];
 static inline int ups_check(uint8_t *patch);
 static int ups_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags);
 
-const patch_format_t ups_patch_format = { "UPS", ups_check, ups_patch, ups_error_messages };
+const patch_format_t ups_patch_format = {"UPS", ups_check, ups_patch, ups_error_messages};
 
 static const char *ups_error_messages[UPS_ERROR_COUNT] = {
     [UPS_SUCCESS] = "UPS patching successful.",
@@ -48,6 +48,7 @@ static inline int ups_check(uint8_t *patch)
 
 static int ups_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
 {
+#define report(i) (fprintf(stderr, "%s\n", ups_error_messages[i]))
 #define error(i)  \
     do            \
     {             \
@@ -82,11 +83,19 @@ static int ups_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
     patchend = patch + patchmf.size;
     patchcrc = patchend - 12;
 
-    stored_crc[2] = read32le(patchcrc + 8);
-    actual_crc[2] = crc32(patchstart, patchmf.size - 4, 0);
+    if (~flags->ignore_crc & FLAG_CRC_PATCH)
+    {
+        stored_crc[2] = read32le(patchcrc + 8);
+        actual_crc[2] = crc32(patchstart, patchmf.size - 4, 0);
 
-    if (stored_crc[2] != actual_crc[2])
-        error(UPS_PATCH_CRC_NOMATCH);
+        if (stored_crc[2] != actual_crc[2])
+        {
+            if (flags->strict_crc & FLAG_CRC_PATCH)
+                error(UPS_PATCH_CRC_NOMATCH);
+            else
+                report(UPS_PATCH_CRC_NOMATCH);
+        }
+    }
 
     if (patch8() != 'U' || patch8() != 'P' || patch8() != 'S' || patch8() != '1')
         error(UPS_INVALID_HEADER);
@@ -106,14 +115,22 @@ static int ups_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
     if (inputmf.size != input_size)
         fprintf(stderr, "Input file sizes don't match.\n");
 
-    stored_crc[0] = read32le(patchcrc);
-    actual_crc[0] = crc32(input, input_size, 0);
+    if (~flags->ignore_crc & FLAG_CRC_INPUT)
+    {
+        stored_crc[0] = read32le(patchcrc);
+        actual_crc[0] = crc32(input, input_size, 0);
 
-    if (stored_crc[0] != actual_crc[0])
-        error(UPS_INPUT_CRC_NOMATCH);   
+        if (stored_crc[0] != actual_crc[0])
+        {
+            if (flags->strict_crc & FLAG_CRC_INPUT)
+                error(UPS_INPUT_CRC_NOMATCH);
+            else
+                report(UPS_INPUT_CRC_NOMATCH);
+        }
+    }
 
-    outputmf = gible_mmap_file_new(ofn, GIBLE_MMAP_READWRITE);
-    gible_mmap_new(&outputmf, output_size);
+    outputmf = gible_mmap_file_new(ofn, GIBLE_MMAP_WRITE);
+    gible_mmap_create(&outputmf, output_size);
 
     if (!outputmf.status)
         error(ERROR_OUTPUT_FILE_MMAP);
@@ -135,12 +152,21 @@ static int ups_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
         } while (b);
     }
 
-    stored_crc[1] = read32le(patchcrc + 4);
-    actual_crc[1] = crc32(outputmf.handle, outputmf.size, 0);
+    if (~flags->ignore_crc & FLAG_CRC_OUTPUT)
+    {
+        stored_crc[1] = read32le(patchcrc + 4);
+        actual_crc[1] = crc32(outputmf.handle, outputmf.size, 0);
 
-    if (stored_crc[1] != actual_crc[1])
-        error(UPS_OUTPUT_CRC_NOMATCH);
+        if (stored_crc[1] != actual_crc[1])
+        {
+            if (flags->strict_crc & FLAG_CRC_OUTPUT)
+                error(UPS_OUTPUT_CRC_NOMATCH);
+            else
+                report(UPS_OUTPUT_CRC_NOMATCH);
+        }
+    }
 
+#undef report
 #undef error
 #undef patch8
 #undef input8

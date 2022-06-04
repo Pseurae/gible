@@ -39,7 +39,7 @@ extern "C"
     { ARGC_TYPE_END, 0, NULL, NULL, 0, NULL, 0, NULL }
 
 #define ARGC_OPT_HELP() \
-    { ARGC_TYPE_CALLBACK, 'h', "help", NULL, 0, NULL, 0, argc_parser_help_callback }
+    { ARGC_TYPE_CALLBACK, 'h', "help", NULL, 0, "Displays this message.", 0, argc_parser_help_callback }
 
 enum argc_type
 {
@@ -48,8 +48,8 @@ enum argc_type
     ARGC_TYPE_FLAG,
     ARGC_TYPE_BOOLEAN,
     ARGC_TYPE_INTEGER,
-    ARGC_TYPE_CALLBACK,
     ARGC_TYPE_FLOAT,
+    ARGC_TYPE_CALLBACK,
 };
 
 struct argc_option;
@@ -230,6 +230,21 @@ int argc_parser_print_usage(struct argc_parser *par)
     return 1;
 }
 
+int argc_parser_print_options_description(struct argc_parser *par)
+{
+    if (par->options)
+    {
+        fprintf(stderr, "options:\n");
+        struct argc_option *options = par->options;
+
+        for (;options->type != ARGC_TYPE_END; options++) {
+            fputc('\n', stderr);
+            fprintf(stderr, "-%c, --%s\n\t%s\n", options->sname, options->lname, options->desc);
+        }
+    }
+    return 1;
+}
+
 int argc_parser_print_description(struct argc_parser *par)
 {
     if (par->desc)
@@ -243,6 +258,8 @@ int argc_parser_print_help(struct argc_parser *par)
     argc_parser_print_description(par);
     if (par->usage) fputc('\n', stderr);
     argc_parser_print_usage(par);
+    if (par->options) fputc('\n', stderr);
+    argc_parser_print_options_description(par);
     return 1;
 }
 

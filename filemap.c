@@ -38,9 +38,9 @@ gible_mmap_file_t gible_mmap_file_new(char *fn, gible_mmap_mode_t mode)
 
 static const int gible_open_flags[GIBLE_MMAP_MODE_COUNT] = {
     [GIBLE_MMAP_READ] = O_RDONLY,
-    [GIBLE_MMAP_WRITE] = O_RDWR | O_CREAT,
+    [GIBLE_MMAP_WRITE] = O_RDWR | O_CREAT | O_TRUNC,
     [GIBLE_MMAP_READWRITE] = O_RDWR,
-    [GIBLE_MMAP_WRITEREAD] = O_RDWR | O_CREAT,
+    [GIBLE_MMAP_WRITEREAD] = O_RDWR | O_CREAT | O_TRUNC,
 };
 
 static const int gible_mmap_flags[GIBLE_MMAP_MODE_COUNT] = {
@@ -50,20 +50,44 @@ static const int gible_mmap_flags[GIBLE_MMAP_MODE_COUNT] = {
     [GIBLE_MMAP_WRITEREAD] = PROT_READ | PROT_WRITE,
 };
 
-inline int gible_mmap_new(gible_mmap_file_t *f, size_t size)
+inline int gible_mmap_create(gible_mmap_file_t *f, size_t size)
 {
-#define error() (f->status = 0, 0)
-    FILE *temp_out = fopen(f->fn, "w");
-    fseek(temp_out, size - 1, SEEK_SET);
-    fputc(0, temp_out);
-    fclose(temp_out);
-    return gible_mmap_open(f);
-#undef error
+    if (f->status)
+        return 0;
+
+    if (f->mode == GIBLE_MMAP_READ)
+        return 0;
+    if (f->mode == GIBLE_MMAP_READWRITE)
+        return 0;
+
+    int open_flags = gible_open_flags[f->mode];
+    int mmap_flags = gible_mmap_flags[f->mode];
+
+    f->size = size;
+
+    f->fd = open(f->fn, open_flags, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
+    if (f->fd < 0)
+        return 0;
+
+    ftruncate(f->fd, size);
+    f->handle = (uint8_t *)mmap(0, f->size, mmap_flags, MAP_SHARED, f->fd, 0);
+
+    if (f->handle == MAP_FAILED)
+    {
+        f->handle = 0;
+        close(f->fd);
+        f->fd = -1;
+        return 0;
+    }
+
+    f->status = 1;
+    return 1;
 }
 
 int gible_mmap_open(gible_mmap_file_t *f)
 {
-    if (f->status) return 0;
+    if (f->status)
+        return 0;
 
     int open_flags = gible_open_flags[f->mode];
     int mmap_flags = gible_mmap_flags[f->mode];

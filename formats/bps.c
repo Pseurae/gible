@@ -53,6 +53,7 @@ static inline int bps_check(uint8_t *patch)
 
 static int bps_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
 {
+#define report(i) (fprintf(stderr, "%s\n", bps_error_messages[i]))
 #define error(i)  \
     do            \
     {             \
@@ -88,11 +89,19 @@ static int bps_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
     patchend = patch + patchmf.size;
     patchcrc = patchend - 12;
 
-    stored_crc[2] = read32le(patchcrc + 8);
-    actual_crc[2] = crc32(patchstart, patchmf.size - 4, 0);
+    if (~flags->ignore_crc & FLAG_CRC_PATCH)
+    {
+        stored_crc[2] = read32le(patchcrc + 8);
+        actual_crc[2] = crc32(patchstart, patchmf.size - 4, 0);
 
-    if (stored_crc[2] != actual_crc[2])
-        error(BPS_PATCH_CRC_NOMATCH);
+        if (stored_crc[2] != actual_crc[2])
+        {
+            if (flags->strict_crc & FLAG_CRC_PATCH)
+                error(BPS_PATCH_CRC_NOMATCH);
+            else
+                report(BPS_PATCH_CRC_NOMATCH);
+        }
+    }
 
     if (patch8() != 'B' || patch8() != 'P' || patch8() != 'S' || patch8() != '1')
         error(BPS_INVALID_HEADER);
@@ -110,14 +119,22 @@ static int bps_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
     if (inputmf.size != input_size)
         fprintf(stderr, "Input file sizes don't match.\n");
 
-    stored_crc[0] = read32le(patchcrc);
-    actual_crc[0] = crc32(input, input_size, 0);
+    if (~flags->ignore_crc & FLAG_CRC_INPUT)
+    {
+        stored_crc[0] = read32le(patchcrc);
+        actual_crc[0] = crc32(input, input_size, 0);
 
-    if (stored_crc[0] != actual_crc[0])
-        error(BPS_INPUT_CRC_NOMATCH);
+        if (stored_crc[0] != actual_crc[0])
+        {
+            if (flags->strict_crc & FLAG_CRC_INPUT)
+                error(BPS_INPUT_CRC_NOMATCH);
+            else
+                report(BPS_INPUT_CRC_NOMATCH);
+        }
+    }
 
-    outputmf = gible_mmap_file_new(ofn, GIBLE_MMAP_READWRITE);
-    gible_mmap_new(&outputmf, output_size);
+    outputmf = gible_mmap_file_new(ofn, GIBLE_MMAP_WRITEREAD);
+    gible_mmap_create(&outputmf, output_size);
 
     if (!outputmf.status)
         error(ERROR_OUTPUT_FILE_MMAP);
@@ -174,12 +191,21 @@ static int bps_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
         }
     }
 
-    stored_crc[1] = read32le(patchcrc + 4);
-    actual_crc[1] = crc32(outputstart, outputmf.size, 0);
+    if (~flags->ignore_crc & FLAG_CRC_OUTPUT)
+    {
+        stored_crc[1] = read32le(patchcrc + 4);
+        actual_crc[1] = crc32(outputmf.handle, outputmf.size, 0);
 
-    if (stored_crc[1] != actual_crc[1])
-        error(BPS_OUTPUT_CRC_NOMATCH);
+        if (stored_crc[1] != actual_crc[1])
+        {
+            if (flags->strict_crc & FLAG_CRC_OUTPUT)
+                error(BPS_OUTPUT_CRC_NOMATCH);
+            else
+                report(BPS_OUTPUT_CRC_NOMATCH);
+        }
+    }
 
+#undef report
 #undef error
 #undef patch8
 #undef input8

@@ -11,6 +11,7 @@
 #define FLAG_CRC_PATCH (1 << 7)
 #define FLAG_CRC_INPUT (1 << 6)
 #define FLAG_CRC_OUTPUT (1 << 5)
+#define FLAG_CRC_ALL (FLAG_CRC_PATCH | FLAG_CRC_INPUT | FLAG_CRC_OUTPUT)
 
 // By default, checksums are checked at the end.
 typedef struct patch_flags

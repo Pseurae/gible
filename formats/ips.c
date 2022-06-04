@@ -68,6 +68,7 @@ static int ips_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
         goto end; \
     } while (0)
 
+    (void)flags;
     int ret = IPS_SUCCESS;
 
     uint8_t *patch, *patchend, *input, *output;
@@ -161,6 +162,7 @@ static int ips32_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
         goto end; \
     } while (0)
 
+    (void)flags;
     int ret = IPS_SUCCESS;
 
     uint8_t *patch, *patchend, *input, *output;

@@ -24,8 +24,8 @@ static const patch_format_t *patch_formats[] = {
 
 static const char *gible_description = "Yet another rom patcher.";
 static const char *gible_usage[] = {
-    "<patch> <input> <output>",
-    "<patch> <input> <output> [-tyui] [-fgjk] [-b] [-v]"
+    "<patch> <input> <output> [-tyui] [-fgjk] [-b] [-v]",
+    NULL
 };
 
 static const char *gible_mmap_errors[] = {
@@ -75,19 +75,20 @@ static void gible_main(int argc, char *argv[])
     memset(&flags, 0, sizeof(patch_flags_t));
 
     struct argc_option options[] = {
+        ARGC_OPT_HELP(),
         ARGC_OPT_FLAG('t', "ignore-patch-crc", &flags.ignore_crc, FLAG_CRC_PATCH, "Ignores patch file crc.", 0, NULL),
         ARGC_OPT_FLAG('y', "ignore-input-crc", &flags.ignore_crc, FLAG_CRC_INPUT, "Ignores input file crc.", 0, NULL),
         ARGC_OPT_FLAG('u', "ignore-output-crc", &flags.ignore_crc, FLAG_CRC_OUTPUT, "Ignores output file crc.", 0, NULL),
-        ARGC_OPT_BOOLEAN('i', "ignore-crc", &flags.ignore_crc, 0, "Ignores all crc checks.", 0, NULL),
+        ARGC_OPT_FLAG('i', "ignore-crc", &flags.ignore_crc, FLAG_CRC_ALL, "Ignores all crc checks.", 0, NULL),
 
         ARGC_OPT_FLAG('f', "strict-patch-crc", &flags.strict_crc, FLAG_CRC_PATCH, "Aborts on patch crc mismatch.", 0, NULL),
         ARGC_OPT_FLAG('g', "strict-input-crc", &flags.strict_crc, FLAG_CRC_INPUT, "Aborts on input crc mismatch.", 0, NULL),
         ARGC_OPT_FLAG('j', "strict-output-crc", &flags.strict_crc, FLAG_CRC_OUTPUT, "Aborts on output crc mismatch (Not much useful).", 0, NULL),
-        ARGC_OPT_BOOLEAN('k', "strict-crc", &flags.strict_crc, 0, "Ignores all crc checks.", 0, NULL),
+        ARGC_OPT_FLAG('k', "strict-crc", &flags.strict_crc, FLAG_CRC_ALL, "Ignores all crc checks.", 0, NULL),
 
         ARGC_OPT_BOOLEAN('b', "prefer-filebuffer", &flags.verbose, 0, "Uses filebuffer mode over mmap.", 0, NULL),
         ARGC_OPT_BOOLEAN('v', "verbose", &flags.verbose, 0, "Verbose mode.", 0, NULL),
-        ARGC_OPT_HELP(),
+        ARGC_OPT_END()
     };
 
     struct argc_parser parser = argc_parser_new(*argv, options, ARGC_PARSER_FLAGS_STOP_UNKNOWN | ARGC_PARSER_FLAGS_HELP_ON_UNKNOWN);
