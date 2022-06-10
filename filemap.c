@@ -38,9 +38,9 @@ gible_mmap_file_t gible_mmap_file_new(char *fn, gible_mmap_mode_t mode)
 
 static const int gible_open_flags[GIBLE_MMAP_MODE_COUNT] = {
     [GIBLE_MMAP_READ] = O_RDONLY,
-    [GIBLE_MMAP_WRITE] = O_RDWR | O_CREAT | O_TRUNC,
+    [GIBLE_MMAP_WRITE] = O_RDWR | O_CREAT,
     [GIBLE_MMAP_READWRITE] = O_RDWR,
-    [GIBLE_MMAP_WRITEREAD] = O_RDWR | O_CREAT | O_TRUNC,
+    [GIBLE_MMAP_WRITEREAD] = O_RDWR | O_CREAT,
 };
 
 static const int gible_mmap_flags[GIBLE_MMAP_MODE_COUNT] = {
