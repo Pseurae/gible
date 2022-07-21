@@ -93,7 +93,7 @@ static void gible_main(int argc, char *argv[])
 
     struct argc_parser parser = argc_parser_new(*argv + 2, options, ARGC_PARSER_FLAGS_STOP_UNKNOWN | ARGC_PARSER_FLAGS_HELP_ON_UNKNOWN);
     argc_parser_set_messages(&parser, gible_description, gible_usage);
-    if (!argc_parser_parse(&parser, argc - 1, argv + 1)) return;
+    if (!argc_parser_parse(&parser, argc - 2, argv + 2)) return;
 
     if (parser.pcount < 3) {
         argc_parser_print_usage(&parser);
@@ -103,6 +103,9 @@ static void gible_main(int argc, char *argv[])
     char *pfn = parser.positional[0];
     char *ifn = parser.positional[1];
     char *ofn = parser.positional[2];
+
+    printf("%s\n", pfn);
+    printf("%s\n", ifn);
 
     if (!gible_check_filenames(pfn, ifn, ofn)) return;
 
