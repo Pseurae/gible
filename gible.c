@@ -104,9 +104,6 @@ static void gible_main(int argc, char *argv[])
     char *ifn = parser.positional[1];
     char *ofn = parser.positional[2];
 
-    printf("%s\n", pfn);
-    printf("%s\n", ifn);
-
     if (!gible_check_filenames(pfn, ifn, ofn)) return;
 
     if (!file_exists(pfn))
