@@ -90,7 +90,7 @@ static int gible_main(int argc, char *argv[])
         ARGC_OPT_END(),
     };
 
-    struct argc_parser parser = argc_parser_new(*argv + 1, options, ARGC_PARSER_FLAGS_STOP_UNKNOWN | ARGC_PARSER_FLAGS_HELP_ON_UNKNOWN);
+    struct argc_parser parser = argc_parser_new(*argv, options, ARGC_PARSER_FLAGS_STOP_UNKNOWN | ARGC_PARSER_FLAGS_HELP_ON_UNKNOWN);
     argc_parser_set_messages(&parser, gible_description, gible_usage);
 
     if (!argc_parser_parse(&parser, argc - 1, argv + 1))
