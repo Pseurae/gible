@@ -25,7 +25,7 @@ static const patch_format_t *patch_formats[] = {
 static const char *gible_description = "Yet another rom patcher.";
 static const char *gible_usage[] = {
     "<patch> <input> <output> [-tyui] [-fgjk] [-b] [-v]",
-    NULL
+    NULL,
 };
 
 static const char *gible_mmap_errors[] = {
@@ -35,40 +35,39 @@ static const char *gible_mmap_errors[] = {
 };
 
 int main(int argc, char *argv[]);
-static int gible_check_filenames(char *pfn, char *ifn, char *ofn);
-static void gible_main(int argc, char *argv[]);
+static int gible_are_filenames_similar(char *pfn, char *ifn, char *ofn);
+static int gible_main(int argc, char *argv[]);
 static int gible_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags);
 
 int main(int argc, char *argv[])
 {
-    gible_main(argc, argv);
-    return 0;
+    return gible_main(argc, argv);
 }
 
-static int gible_check_filenames(char *pfn, char *ifn, char *ofn)
+static int gible_are_filenames_similar(char *pfn, char *ifn, char *ofn)
 {
     if (!strcmp(pfn, ifn))
     {
         fprintf(stderr, "Error: Patch and input filenames are the same.\n");
-        return 0;
+        return 1;
     }
 
     if (!strcmp(ifn, ofn))
     {
         fprintf(stderr, "Error: Input and output filenames are the same.\n");
-        return 0;
+        return 1;
     }
 
     if (!strcmp(pfn, ofn))
     {
         fprintf(stderr, "Error: Patch and output filenames are the same.\n");
-        return 0;
+        return 1;
     }
 
-    return 1;
+    return 0;
 }
 
-static void gible_main(int argc, char *argv[])
+static int gible_main(int argc, char *argv[])
 {
 
     patch_flags_t flags;
@@ -88,42 +87,41 @@ static void gible_main(int argc, char *argv[])
 
         // ARGC_OPT_BOOLEAN('b', "prefer-filebuffer", &flags.verbose, 0, "Uses filebuffer mode over mmap.", 0, NULL),
         // ARGC_OPT_BOOLEAN('v', "verbose", &flags.verbose, 0, "Verbose mode.", 0, NULL),
-        ARGC_OPT_END()
+        ARGC_OPT_END(),
     };
 
-    struct argc_parser parser = argc_parser_new(*argv + 2, options, ARGC_PARSER_FLAGS_STOP_UNKNOWN | ARGC_PARSER_FLAGS_HELP_ON_UNKNOWN);
+    struct argc_parser parser = argc_parser_new(*argv + 1, options, ARGC_PARSER_FLAGS_STOP_UNKNOWN | ARGC_PARSER_FLAGS_HELP_ON_UNKNOWN);
     argc_parser_set_messages(&parser, gible_description, gible_usage);
-    if (!argc_parser_parse(&parser, argc - 2, argv + 2)) return;
 
-    if (parser.pcount < 3) {
+    if (!argc_parser_parse(&parser, argc - 1, argv + 1))
+        return 1;
+
+    if (parser.pcount < 3)
+    {
         argc_parser_print_usage(&parser);
-        return;
+        return 1;
     }
 
     char *pfn = parser.positional[0];
     char *ifn = parser.positional[1];
     char *ofn = parser.positional[2];
 
-    if (!gible_check_filenames(pfn, ifn, ofn)) return;
+    if (gible_are_filenames_similar(pfn, ifn, ofn))
+        return 1;
 
     if (!file_exists(pfn))
     {
         fprintf(stderr, "Patch file does not exist.\n");
-        return;
+        return 1;
     }
 
     if (!file_exists(ifn))
     {
         fprintf(stderr, "Input file does not exist.\n");
-        return;
+        return 1;
     }
 
-    int ret = gible_patch(pfn, ifn, ofn, &flags);
-
-    if (ret == -1)
-        fprintf(stderr, "Unsupported patch type.\n");
-
-    return;
+    return gible_patch(pfn, ifn, ofn, &flags);
 }
 
 static int gible_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
@@ -144,9 +142,13 @@ static int gible_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
             else
                 fprintf(stderr, "%s\n", gible_mmap_errors[INT16_MAX - ret - 1]);
 
-            return ret;
+            if (ret > 0)
+                return 1;
+            else
+                return 0;
         }
     }
 
-    return -1;
+    fprintf(stderr, "Unsupported patch type.\n");
+    return 1;
 }
