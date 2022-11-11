@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdint.h>
 
-#include "bps.h"
 #include "../format.h"
 #include "../utils.h"
 #include "../filemap.h"
@@ -67,7 +66,7 @@ static int bps_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
 
     int ret = BPS_SUCCESS;
 
-    gible_mmap_file_t patchmf, inputmf, outputmf;
+    mmap_file_t patchmf, inputmf, outputmf;
     uint8_t *patch, *patchstart, *patchend, *patchcrc;
     uint8_t *input;
     uint8_t *output, *outputstart;
@@ -75,8 +74,8 @@ static int bps_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
     uint32_t actual_crc[3] = {0, 0, 0};
     uint32_t stored_crc[3] = {0, 0, 0};
 
-    patchmf = gible_mmap_file_new(pfn, GIBLE_MMAP_READ);
-    gible_mmap_open(&patchmf);
+    patchmf = mmap_file_new(pfn, MMAP_READ);
+    mmap_open(&patchmf);
 
     if (patchmf.status == -1)
         error(ERROR_PATCH_FILE_MMAP);
@@ -109,8 +108,8 @@ static int bps_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
     size_t input_size = readvint(&patch);
     size_t output_size = readvint(&patch);
 
-    inputmf = gible_mmap_file_new(ifn, GIBLE_MMAP_READ);
-    gible_mmap_open(&inputmf);
+    inputmf = mmap_file_new(ifn, MMAP_READ);
+    mmap_open(&inputmf);
     if (inputmf.status == -1)
         error(ERROR_INPUT_FILE_MMAP);
 
@@ -133,8 +132,8 @@ static int bps_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
         }
     }
 
-    outputmf = gible_mmap_file_new(ofn, GIBLE_MMAP_WRITEREAD);
-    gible_mmap_create(&outputmf, output_size);
+    outputmf = mmap_file_new(ofn, MMAP_WRITEREAD);
+    mmap_create(&outputmf, output_size);
 
     if (!outputmf.status)
         error(ERROR_OUTPUT_FILE_MMAP);
@@ -212,9 +211,9 @@ static int bps_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
 #undef sign
 
 end:
-    gible_mmap_close(&patchmf);
-    gible_mmap_close(&inputmf);
-    gible_mmap_close(&outputmf);
+    mmap_close(&patchmf);
+    mmap_close(&inputmf);
+    mmap_close(&outputmf);
 
     return ret;
 }

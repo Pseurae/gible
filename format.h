@@ -1,5 +1,5 @@
-#ifndef GIBLE_FORMAT_H
-#define GIBLE_FORMAT_H
+#ifndef FORMAT_H
+#define FORMAT_H
 
 #include <stdint.h>
 #include "filemap.h"
@@ -36,4 +36,9 @@ typedef struct patch_format
     const char **error_msgs;
 } patch_format_t;
 
-#endif /* GIBLE_FORMAT_H */
+extern const patch_format_t ips_patch_format;
+extern const patch_format_t ips32_patch_format;
+extern const patch_format_t ups_patch_format;
+extern const patch_format_t bps_patch_format;
+
+#endif /* FORMAT_H */

@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdint.h>
 
-#include "ips.h"
 #include "../format.h"
 #include "../filemap.h"
 
@@ -69,10 +68,10 @@ static int ips_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
     int ret = IPS_SUCCESS;
 
     uint8_t *patch, *patchend, *input, *output;
-    gible_mmap_file_t patchmf, inputmf, outputmf;
+    mmap_file_t patchmf, inputmf, outputmf;
 
-    patchmf = gible_mmap_file_new(pfn, GIBLE_MMAP_READ);
-    gible_mmap_open(&patchmf);
+    patchmf = mmap_file_new(pfn, MMAP_READ);
+    mmap_open(&patchmf);
 
     if (patchmf.status == -1)
         error(ERROR_PATCH_FILE_MMAP);
@@ -90,8 +89,8 @@ static int ips_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
     if (patch8() != 'P' || patch8() != 'A' || patch8() != 'T' || patch8() != 'C' || patch8() != 'H')
         error(IPS_INVALID_HEADER); // Never gonna get called, unless the function gets used directly.
 
-    inputmf = gible_mmap_file_new(ifn, GIBLE_MMAP_READ);
-    gible_mmap_open(&inputmf);
+    inputmf = mmap_file_new(ifn, MMAP_READ);
+    mmap_open(&inputmf);
 
     if (inputmf.status == -1)
         error(ERROR_INPUT_FILE_MMAP);
@@ -102,10 +101,10 @@ static int ips_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
     fwrite(input, sizeof(char), inputmf.size, temp_out);
     fclose(temp_out);
 
-    gible_mmap_close(&inputmf);
+    mmap_close(&inputmf);
 
-    outputmf = gible_mmap_file_new(ofn, GIBLE_MMAP_WRITE);
-    gible_mmap_open(&outputmf);
+    outputmf = mmap_file_new(ofn, MMAP_WRITE);
+    mmap_open(&outputmf);
 
     if (!outputmf.status)
         error(ERROR_OUTPUT_FILE_MMAP);
@@ -143,9 +142,9 @@ static int ips_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
 #undef patch24
 
 end:
-    gible_mmap_close(&patchmf);
-    gible_mmap_close(&inputmf);
-    gible_mmap_close(&outputmf);
+    mmap_close(&patchmf);
+    mmap_close(&inputmf);
+    mmap_close(&outputmf);
 
     return ret;
 }
@@ -163,10 +162,10 @@ static int ips32_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
     int ret = IPS_SUCCESS;
 
     uint8_t *patch, *patchend, *input, *output;
-    gible_mmap_file_t patchmf, inputmf, outputmf;
+    mmap_file_t patchmf, inputmf, outputmf;
 
-    patchmf = gible_mmap_file_new(pfn, GIBLE_MMAP_READ);
-    gible_mmap_open(&patchmf);
+    patchmf = mmap_file_new(pfn, MMAP_READ);
+    mmap_open(&patchmf);
 
     if (patchmf.status == -1)
         error(ERROR_PATCH_FILE_MMAP);
@@ -184,8 +183,8 @@ static int ips32_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
     if (patch8() != 'I' || patch8() != 'P' || patch8() != 'S' || patch8() != '3' || patch8() != '2')
         error(IPS_INVALID_HEADER); // Never gonna get called, unless the function gets used directly.
 
-    inputmf = gible_mmap_file_new(ifn, GIBLE_MMAP_READ);
-    gible_mmap_open(&inputmf);
+    inputmf = mmap_file_new(ifn, MMAP_READ);
+    mmap_open(&inputmf);
 
     if (inputmf.status == -1)
         error(ERROR_INPUT_FILE_MMAP);
@@ -196,10 +195,10 @@ static int ips32_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
     fwrite(input, sizeof(char), inputmf.size, temp_out);
     fclose(temp_out);
 
-    gible_mmap_close(&inputmf);
+    mmap_close(&inputmf);
 
-    outputmf = gible_mmap_file_new(ofn, GIBLE_MMAP_WRITE);
-    gible_mmap_open(&outputmf);
+    outputmf = mmap_file_new(ofn, MMAP_WRITE);
+    mmap_open(&outputmf);
 
     if (!outputmf.status)
         error(ERROR_OUTPUT_FILE_MMAP);
@@ -237,9 +236,9 @@ static int ips32_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
 #undef patch32
 
 end:
-    gible_mmap_close(&patchmf);
-    gible_mmap_close(&inputmf);
-    gible_mmap_close(&outputmf);
+    mmap_close(&patchmf);
+    mmap_close(&inputmf);
+    mmap_close(&outputmf);
 
     return ret;
 }

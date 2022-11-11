@@ -1,31 +1,40 @@
-#ifndef GIBLE_MMAP_H
-#define GIBLE_MMAP_H
+#ifndef MMAP_H
+#define MMAP_H
 
 #include <stdint.h>
 #include <stddef.h>
 
-typedef enum gible_mmap_mode
-{
-    GIBLE_MMAP_READ,
-    GIBLE_MMAP_WRITE,
-    GIBLE_MMAP_READWRITE,
-    GIBLE_MMAP_WRITEREAD,
-    GIBLE_MMAP_MODE_COUNT
-} gible_mmap_mode_t;
+#if defined(_WIN32)
+#include <windows.h>
+#endif
 
-typedef struct gible_mmap_file
+typedef enum mmap_mode
+{
+    MMAP_READ,
+    MMAP_WRITE,
+    MMAP_READWRITE,
+    MMAP_WRITEREAD,
+    MMAP_MODE_COUNT
+} mmap_mode_t;
+
+typedef struct mmap_file
 {
     char *fn;
-    gible_mmap_mode_t mode;
+    mmap_mode_t mode;
     int status;
     size_t size;
-    int fd;
     uint8_t *handle;
-} gible_mmap_file_t;
+#if defined(_WIN32)
+    HANDLE filehandle;
+    HANDLE maphandle;
+#else
+    int fd;
+#endif
+} mmap_file_t;
 
-gible_mmap_file_t gible_mmap_file_new(char *fn, gible_mmap_mode_t mode);
-int gible_mmap_create(gible_mmap_file_t *f, size_t size);
-int gible_mmap_open(gible_mmap_file_t *f);
-void gible_mmap_close(gible_mmap_file_t *f);
+mmap_file_t mmap_file_new(char *fn, mmap_mode_t mode);
+int mmap_create(mmap_file_t *f, size_t size);
+int mmap_open(mmap_file_t *f);
+void mmap_close(mmap_file_t *f);
 
-#endif /* GIBLE_MMAP_H */
+#endif /* MMAP_H */

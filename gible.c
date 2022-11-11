@@ -9,9 +9,6 @@
 #include "utils.h"
 #include "filemap.h"
 #include "format.h"
-#include "formats/ips.h"
-#include "formats/ups.h"
-#include "formats/bps.h"
 
 #define HEADER_REGION_LEN 10
 
@@ -28,23 +25,23 @@ static const char *gible_usage[] = {
     NULL,
 };
 
-static const char *gible_mmap_errors[] = {
+static const char *mmap_errors[] = {
     "Cannot open the given patch file.",
     "Cannot open the given input file.",
     "Cannot open the given output file.",
 };
 
 int main(int argc, char *argv[]);
-static int gible_are_filenames_similar(char *pfn, char *ifn, char *ofn);
+static int are_filenames_same(char *pfn, char *ifn, char *ofn);
 static int gible_main(int argc, char *argv[]);
-static int gible_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags);
+static int patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags);
 
 int main(int argc, char *argv[])
 {
     return gible_main(argc, argv);
 }
 
-static int gible_are_filenames_similar(char *pfn, char *ifn, char *ofn)
+static int are_filenames_same(char *pfn, char *ifn, char *ofn)
 {
     if (!strcmp(pfn, ifn))
     {
@@ -106,7 +103,7 @@ static int gible_main(int argc, char *argv[])
     char *ifn = parser.positional[1];
     char *ofn = parser.positional[2];
 
-    if (gible_are_filenames_similar(pfn, ifn, ofn))
+    if (are_filenames_same(pfn, ifn, ofn))
         return 1;
 
     if (!file_exists(pfn))
@@ -121,10 +118,10 @@ static int gible_main(int argc, char *argv[])
         return 1;
     }
 
-    return gible_patch(pfn, ifn, ofn, &flags);
+    return patch(pfn, ifn, ofn, &flags);
 }
 
-static int gible_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
+static int patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
 {
     uint8_t header_buf[HEADER_REGION_LEN];
     FILE *p = fopen(pfn, "r");
@@ -140,7 +137,7 @@ static int gible_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
             if (ret < ERROR_OUTPUT_FILE_MMAP)
                 fprintf(stderr, "%s\n", (*format)->error_msgs[ret]);
             else
-                fprintf(stderr, "%s\n", gible_mmap_errors[INT16_MAX - ret - 1]);
+                fprintf(stderr, "%s\n", mmap_errors[INT16_MAX - ret - 1]);
 
             if (ret > 0)
                 return 1;
