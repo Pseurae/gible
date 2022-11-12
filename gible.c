@@ -70,7 +70,7 @@ static int gible_main(int argc, char *argv[])
     patch_flags_t flags;
     memset(&flags, 0, sizeof(patch_flags_t));
 
-    struct argc_option options[] = {
+    argc_option_t options[] = {
         ARGC_OPT_HELP(),
         ARGC_OPT_FLAG('t', "ignore-patch-crc", &flags.ignore_crc, FLAG_CRC_PATCH, "Ignores patch file crc.", 0, NULL),
         ARGC_OPT_FLAG('y', "ignore-input-crc", &flags.ignore_crc, FLAG_CRC_INPUT, "Ignores input file crc.", 0, NULL),
@@ -87,7 +87,7 @@ static int gible_main(int argc, char *argv[])
         ARGC_OPT_END(),
     };
 
-    struct argc_parser parser = argc_parser_new(*argv, options, ARGC_PARSER_FLAGS_STOP_UNKNOWN | ARGC_PARSER_FLAGS_HELP_ON_UNKNOWN);
+    argc_parser_t parser = argc_parser_new(*argv, options, ARGC_PARSER_FLAGS_STOP_UNKNOWN | ARGC_PARSER_FLAGS_HELP_ON_UNKNOWN);
     argc_parser_set_messages(&parser, gible_description, gible_usage);
 
     if (!argc_parser_parse(&parser, argc - 1, argv + 1))

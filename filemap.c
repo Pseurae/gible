@@ -1,4 +1,4 @@
-/* Thin wrapper around mmap and MapViewToFile. */
+/* Thin wrapper around mmap and MapViewOfFile. */
 
 #include <stdio.h>
 #include <stdlib.h>

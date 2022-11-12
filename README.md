@@ -10,7 +10,7 @@ Gible supports patching of IPS, IPS32, UPS and BPS files.  Patch creation and ot
 ## Building
 
 ### Windows
-Doesn't work on Windows yet. I still don't have a Windows device on hand to code in filemapping using `MapFileToView`.
+Doesn't work on Windows yet. I still don't have a Windows device on hand to code in filemapping using `MapFileOfView`.
 
 ### Linux & Mac
 Literally just run `make` and it should compile into an executable file.
