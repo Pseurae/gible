@@ -92,6 +92,8 @@ static int ips_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
     inputmf = mmap_file_new(ifn, MMAP_READ);
     mmap_open(&inputmf);
 
+    printf("Input opened.\n");
+
     if (inputmf.status == -1)
         error(ERROR_INPUT_FILE_MMAP);
 

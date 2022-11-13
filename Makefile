@@ -1,4 +1,4 @@
-CC			:= gcc
+CC			:= x86_64-w64-mingw32-gcc
 CFLAGS		:= -I. -O3 -ffunction-sections -Wall -Wextra -MMD
 
 HEADERS 	:= $(shell find . -name "*.h")

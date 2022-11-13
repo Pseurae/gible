@@ -7,7 +7,7 @@
 #include "filemap.h"
 
 static void mmap_file_init(mmap_file_t *f);
-static int mmap_create_internal(mmap_file_t *f, size_t size);
+static int mmap_create_internal(mmap_file_t *f);
 static int mmap_open_internal(mmap_file_t *f);
 
 mmap_file_t mmap_file_new(char *fn, mmap_mode_t mode)
@@ -31,7 +31,7 @@ int mmap_create(mmap_file_t *f, size_t size)
 
     f->size = size;
 
-    return mmap_create_internal(f, size);
+    return mmap_create_internal(f);
 }
 
 int mmap_open(mmap_file_t *f)
@@ -59,24 +59,29 @@ static const int mmap_mode_flags[MMAP_MODE_COUNT][4] = {
     [MMAP_WRITEREAD] = { GENERIC_READ | GENERIC_WRITE, CREATE_NEW, PAGE_READWRITE, FILE_MAP_ALL_ACCESS }
 };
 
-int mmap_create_internal(mmap_file_t *f, size_t size)
+int mmap_create_internal(mmap_file_t *f)
 {
     const int *flags = mmap_mode_flags[f->mode];
 
-    f->filehandle = CreateFileW(f->fn, flags[0], FILE_SHARE_READ, NULL, flags[1], FILE_ATTRIBUTE_NORMAL, NULL);
+    f->filehandle = CreateFileW((LPCWSTR)f->fn, flags[0], FILE_SHARE_READ, NULL, flags[1], FILE_ATTRIBUTE_NORMAL, NULL);
 
     if (f->filehandle == INVALID_HANDLE_VALUE) 
+    {
+        f->status = -1;
         return 0;
+    }
 
-    f->maphandle = CreateFileMapping(f->filehandle, NULL, flags[2], 0, f->size, NULL);
+    f->maphandle = CreateFileMapping(f->filehandle, NULL, flags[2], f->size, 0, NULL);
 
     if (f->maphandle == INVALID_HANDLE_VALUE)
     {
         CloseHandle(f->filehandle);
+        f->status = -1;
         return 0;
     }
 
     f->handle = (uint8_t *)MapViewOfFile(f->maphandle, flags[3], 0, 0, f->size);
+    f->status = 1;
     return 1;
 };
 
@@ -84,10 +89,13 @@ int mmap_open_internal(mmap_file_t *f)
 {
     const int *flags = mmap_mode_flags[f->mode];
 
-    f->filehandle = CreateFileW(f->fn, flags[0], FILE_SHARE_READ, NULL, flags[1], FILE_ATTRIBUTE_NORMAL, NULL);
+    f->filehandle = CreateFileW((LPCWSTR)f->fn, flags[0], FILE_SHARE_READ, NULL, flags[1], FILE_ATTRIBUTE_NORMAL, NULL);
 
     if (f->filehandle == INVALID_HANDLE_VALUE) 
+    {
+        f->status = -1;
         return 0;
+    }
 
     f->size = GetFileSize(f->filehandle, NULL);
 
@@ -96,14 +104,16 @@ int mmap_open_internal(mmap_file_t *f)
     if (f->maphandle == INVALID_HANDLE_VALUE)
     {
         CloseHandle(f->filehandle);
+        f->status = -1;
         return 0;
     }
 
     f->handle = (uint8_t *)MapViewOfFile(f->maphandle, flags[3], 0, 0, f->size);
+    f->status = 1;
     return 1;
 };
 
-int mmap_close(mmap_file_t *f)
+void mmap_close(mmap_file_t *f)
 {
     if (f->handle)
     {
@@ -139,13 +149,16 @@ static const int mmap_mode_flags[MMAP_MODE_COUNT][2] = {
     [MMAP_WRITEREAD] = { O_RDWR | O_CREAT, PROT_READ | PROT_WRITE }
 };
 
-int mmap_create_internal(mmap_file_t *f, size_t size)
+int mmap_create_internal(mmap_file_t *f)
 {
     const int *flags = mmap_mode_flags[f->mode];
 
     f->fd = open(f->fn, flags[0], S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
     if (f->fd < 0)
+    {
+        f->status = -1;
         return 0;
+    }
 
     ftruncate(f->fd, size);
     f->handle = (uint8_t *)mmap(0, f->size, flags[1], MAP_SHARED, f->fd, 0);
@@ -155,6 +168,7 @@ int mmap_create_internal(mmap_file_t *f, size_t size)
         f->handle = 0;
         close(f->fd);
         f->fd = -1;
+        f->status = -1;
         return 0;
     }
 
@@ -171,7 +185,10 @@ int mmap_open_internal(mmap_file_t *f)
 
     f->fd = open(f->fn, flags[0], S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
     if (f->fd < 0)
+    {
+        f->status = -1;
         return 0;
+    }
 
     struct stat p_stat;
     fstat(f->fd, &p_stat);
@@ -184,6 +201,7 @@ int mmap_open_internal(mmap_file_t *f)
         f->handle = 0;
         close(f->fd);
         f->fd = -1;
+        f->status = -1;
         return 0;
     }
 
