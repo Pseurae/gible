@@ -31,6 +31,7 @@ typedef int (*patch_main)(char *, char *, char *, patch_flags_t *);
 typedef struct patch_format
 {
     char *name;
+    uint8_t header_len;
     patch_check check;
     patch_main main;
     const char **error_msgs;

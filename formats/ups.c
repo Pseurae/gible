@@ -21,7 +21,7 @@ static const char *ups_error_messages[UPS_ERROR_COUNT];
 static inline int ups_check(uint8_t *patch);
 static int ups_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags);
 
-const patch_format_t ups_patch_format = {"UPS", ups_check, ups_patch, ups_error_messages};
+const patch_format_t ups_patch_format = {"UPS", 4, ups_check, ups_patch, ups_error_messages};
 
 static const char *ups_error_messages[UPS_ERROR_COUNT] = {
     [UPS_SUCCESS] = "UPS patching successful.",

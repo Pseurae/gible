@@ -125,11 +125,14 @@ static int patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
 {
     uint8_t header_buf[HEADER_REGION_LEN];
     FILE *p = fopen(pfn, "r");
-    fread(header_buf, sizeof(char), HEADER_REGION_LEN, p);
+    int numbytes = fread(header_buf, sizeof(char), HEADER_REGION_LEN, p);
     fclose(p);
 
     for (const patch_format_t **format = patch_formats; *format; format++)
     {
+        if ((*format)->header_len > numbytes)
+            continue;
+
         if ((*format)->check(header_buf))
         {
             int ret = (*format)->main(pfn, ifn, ofn, flags);

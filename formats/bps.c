@@ -30,7 +30,7 @@ static const char *bps_error_messages[BPS_ERROR_COUNT];
 static inline int bps_check(uint8_t *patch);
 static int bps_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags);
 
-const patch_format_t bps_patch_format = { "BPS", bps_check, bps_patch, bps_error_messages };
+const patch_format_t bps_patch_format = { "BPS", 4, bps_check, bps_patch, bps_error_messages };
 
 static const char *bps_error_messages[BPS_ERROR_COUNT] = {
     [BPS_SUCCESS] = "BPS patching successful.",

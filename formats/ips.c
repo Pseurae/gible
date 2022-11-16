@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "../format.h"
 #include "../filemap.h"
@@ -19,8 +20,8 @@ static inline int ips32_check(uint8_t *patch);
 static int ips_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags);
 static int ips32_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags);
 
-const patch_format_t ips_patch_format = { "IPS", ips_check, ips_patch, ips_error_messages };
-const patch_format_t ips32_patch_format = { "IPS32", ips32_check, ips32_patch, ips_error_messages };
+const patch_format_t ips_patch_format = { "IPS", 5, ips_check, ips_patch, ips_error_messages };
+const patch_format_t ips32_patch_format = { "IPS32", 5, ips32_check, ips32_patch, ips_error_messages };
 
 static const char *ips_error_messages[IPS_ERROR_COUNT] = {
     [IPS_SUCCESS] = "IPS patching successful.",
@@ -97,19 +98,17 @@ static int ips_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
 
     input = inputmf.handle;
 
-    FILE *temp_out = fopen(ofn, "w+");
-    fwrite(input, sizeof(char), inputmf.size, temp_out);
-    fclose(temp_out);
-
-    mmap_close(&inputmf);
-
-    outputmf = mmap_file_new(ofn, MMAP_READWRITE);
-    mmap_open(&outputmf);
+    outputmf = mmap_file_new(ofn, MMAP_WRITE);
+    mmap_create(&outputmf, inputmf.size);
 
     if (!outputmf.status)
         error(ERROR_OUTPUT_FILE_MMAP);
 
     output = outputmf.handle;
+
+    memcpy(output, input, outputmf.size);
+
+    mmap_close(&inputmf);
 
     while (patch < patchend - 3)
     {
