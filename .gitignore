@@ -59,3 +59,9 @@ build/
 output
 output.**
 gible
+
+# Patch Files
+*.ips
+*.ips32
+*.ups
+*.bps
