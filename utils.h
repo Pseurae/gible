@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 int file_exists(const char *fn);
 size_t readvint(uint8_t **stream);

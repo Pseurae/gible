@@ -21,7 +21,7 @@ typedef struct mmap_file
 {
     char *fn;
     mmap_mode_t mode;
-    int status;
+    int32_t status;
     size_t size;
     uint8_t *handle;
 #if defined(_WIN32)
