@@ -1,4 +1,14 @@
-CC			:= x86_64-w64-mingw32-gcc
+TOOLCHAIN 	?= 
+
+ifeq (windows, $(MAKECMDGOALS))
+TOOLCHAIN	:= x86_64-w64-mingw32
+endif
+
+ifeq (,$(TOOLCHAIN))
+CC			:= gcc
+else
+CC			:= $(TOOLCHAIN)-gcc
+endif
 CFLAGS		:= -I. -O3 -ffunction-sections -Wall -Wextra -MMD
 
 HEADERS 	:= $(shell find . -name "*.h")
@@ -13,9 +23,10 @@ $(OBJ_DIR)/%.o: %.c
 	@mkdir -p $(shell dirname "$@")
 	$(CC) $(CFLAGS) -c $< -o $@
 
+windows: all
+
 all: $(DEP_PATHS) $(OBJ_PATHS)
 	$(CC) $(CFLAGS) -o gible $(OBJ_PATHS)
-	@strip gible
 	@echo Done.
 
 .PHONY: all

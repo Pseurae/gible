@@ -54,16 +54,21 @@ static void mmap_file_init(mmap_file_t *f)
 
 static const int mmap_mode_flags[MMAP_MODE_COUNT][4] = {
     [MMAP_READ] = { GENERIC_READ, OPEN_EXISTING, PAGE_READONLY, FILE_MAP_READ },
-    [MMAP_WRITE] = { GENERIC_WRITE, CREATE_ALWAYS, PAGE_READWRITE, FILE_MAP_ALL_ACCESS },
+    [MMAP_WRITE] = { GENERIC_READ | GENERIC_WRITE, OPEN_ALWAYS, PAGE_READWRITE, FILE_MAP_ALL_ACCESS },
     [MMAP_READWRITE] = { GENERIC_READ | GENERIC_WRITE, OPEN_EXISTING, PAGE_READWRITE, FILE_MAP_ALL_ACCESS },
-    [MMAP_WRITEREAD] = { GENERIC_READ | GENERIC_WRITE, CREATE_NEW, PAGE_READWRITE, FILE_MAP_ALL_ACCESS }
+    [MMAP_WRITEREAD] = { GENERIC_READ | GENERIC_WRITE, OPEN_ALWAYS, PAGE_READWRITE, FILE_MAP_ALL_ACCESS }
 };
+
+static const int share_flag = FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE;
 
 int mmap_create_internal(mmap_file_t *f)
 {
     const int *flags = mmap_mode_flags[f->mode];
 
-    f->filehandle = CreateFileW((LPCWSTR)f->fn, flags[0], FILE_SHARE_READ, NULL, flags[1], FILE_ATTRIBUTE_NORMAL, NULL);
+    f->filehandle = CreateFile(
+        f->fn, flags[0], share_flag, 
+        NULL, flags[1], 0, NULL
+    );
 
     if (f->filehandle == INVALID_HANDLE_VALUE) 
     {
@@ -71,7 +76,10 @@ int mmap_create_internal(mmap_file_t *f)
         return 0;
     }
 
-    f->maphandle = CreateFileMapping(f->filehandle, NULL, flags[2], f->size, 0, NULL);
+    f->maphandle = CreateFileMappingW(
+        f->filehandle, NULL, flags[2], 
+        0, f->size, NULL
+    );
 
     if (f->maphandle == INVALID_HANDLE_VALUE)
     {
@@ -80,7 +88,7 @@ int mmap_create_internal(mmap_file_t *f)
         return 0;
     }
 
-    f->handle = (uint8_t *)MapViewOfFile(f->maphandle, flags[3], 0, 0, f->size);
+    f->handle = (uint8_t *)MapViewOfFile(f->maphandle, flags[3], 0, 0, 0);
     f->status = 1;
     return 1;
 };
@@ -89,7 +97,10 @@ int mmap_open_internal(mmap_file_t *f)
 {
     const int *flags = mmap_mode_flags[f->mode];
 
-    f->filehandle = CreateFileW((LPCWSTR)f->fn, flags[0], FILE_SHARE_READ, NULL, flags[1], FILE_ATTRIBUTE_NORMAL, NULL);
+    f->filehandle = CreateFile(
+        f->fn, flags[0], share_flag, NULL, 
+        flags[1], 0, NULL
+    );
 
     if (f->filehandle == INVALID_HANDLE_VALUE) 
     {
@@ -97,9 +108,18 @@ int mmap_open_internal(mmap_file_t *f)
         return 0;
     }
 
-    f->size = GetFileSize(f->filehandle, NULL);
+    LARGE_INTEGER i;
+    if (GetFileSizeEx(f->filehandle, &i)) {
+        f->size = (size_t)i.QuadPart;
+    } else {
+        CloseHandle(f->filehandle);
+        return 0;
+    }
 
-    f->maphandle = CreateFileMapping(f->filehandle, NULL, flags[2], 0, f->size, NULL);
+    f->maphandle = CreateFileMappingW(
+        f->filehandle, NULL, flags[2], 
+        0, f->size, NULL
+    );
 
     if (f->maphandle == INVALID_HANDLE_VALUE)
     {
@@ -108,7 +128,7 @@ int mmap_open_internal(mmap_file_t *f)
         return 0;
     }
 
-    f->handle = (uint8_t *)MapViewOfFile(f->maphandle, flags[3], 0, 0, f->size);
+    f->handle = (uint8_t *)MapViewOfFile(f->maphandle, flags[3], 0, 0, 0);
     f->status = 1;
     return 1;
 };
@@ -160,7 +180,7 @@ int mmap_create_internal(mmap_file_t *f)
         return 0;
     }
 
-    ftruncate(f->fd, size);
+    ftruncate(f->fd, f->size);
     f->handle = (uint8_t *)mmap(0, f->size, flags[1], MAP_SHARED, f->fd, 0);
 
     if (f->handle == MAP_FAILED)
