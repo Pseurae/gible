@@ -1,7 +1,5 @@
-<div style="display: block; position: relative;">
-<h1 style="width: 100%;">Gible</h1>
-<p style="position: absolute; margin: auto; top: 0; bottom: 0; right: 0;">By <b>@Pseurae</b></p>
-</div>
+# Gible
+By **@Pseurae**
 
 A ROM patcher made using C.
 
@@ -10,10 +8,12 @@ Gible supports patching of IPS, IPS32, UPS and BPS files.  Patch creation and ot
 ## Building
 
 ### Windows
-Doesn't work on Windows yet. I still don't have a Windows device on hand to code in filemapping using `MapFileOfView`.
+Install mingw-w64 and run `make windows` on WSL. Same can be done in Mac or Linux.
 
 ### Linux & Mac
-Literally just run `make` and it should compile into an executable file.
+Just run `make` and gible should be compiled.
+
+> You may need to run `make clean` if switching compilation between Windows and Unix.   
 
 ## External Resources
 
