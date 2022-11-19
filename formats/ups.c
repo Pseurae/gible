@@ -18,10 +18,7 @@ enum ups_error
 };
 
 static const char *ups_error_messages[UPS_ERROR_COUNT];
-static inline int ups_check(uint8_t *patch);
-static int ups_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags);
-
-const patch_format_t ups_patch_format = {"UPS", 4, ups_check, ups_patch, ups_error_messages};
+static int ups_patch(patch_context_t *c);
 
 static const char *ups_error_messages[UPS_ERROR_COUNT] = {
     [UPS_SUCCESS] = "UPS patching successful.",
@@ -32,110 +29,84 @@ static const char *ups_error_messages[UPS_ERROR_COUNT] = {
     [UPS_OUTPUT_CRC_NOMATCH] = "Output CRCs don't match.",
 };
 
-static inline int ups_check(uint8_t *patch)
+const patch_format_t ups_format = { "UPS", "UPS1", 4, ups_patch, ups_error_messages };
+
+static int ups_patch(patch_context_t *c)
 {
-    char patch_header[4] = {'U', 'P', 'S', '1'};
-
-    for (int i = 0; i < 4; i++)
-    {
-        if (patch_header[i] != patch[i])
-            return 0;
-    }
-
-    return 1;
-}
-
-static int ups_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
-{
-#define report(i) (fprintf(stderr, "%s\n", ups_error_messages[i]))
-#define error(i)  \
-    do            \
-    {             \
-        ret = i;  \
-        goto end; \
-    } while (0)
+#define error(a, b, i) \
+    if ((a)) { \
+        if ((b)) { \
+            fprintf(stderr, "%s\n", ups_error_messages[i]); \
+        } else { \
+            return i; \
+        } \
+    } \
 
 #define patch8() (patch < patchend ? *(patch++) : 0)
 #define input8() (input < inputend ? *(input++) : 0)
 #define writeout8(b) (output < outputend ? *(output++) = b : 0)
 
-    int ret = UPS_SUCCESS;
+    patch_flags_t *flags = c->flags;
 
-    mmap_file_t patchmf, inputmf, outputmf;
     uint8_t *patch, *patchstart, *patchend, *patchcrc;
     uint8_t *input, *inputend, *output, *outputend;
 
-    uint32_t actual_crc[3] = {0, 0, 0};
-    uint32_t stored_crc[3] = {0, 0, 0};
+    uint32_t acrc[3] = {0, 0, 0};
+    uint32_t scrc[3] = {0, 0, 0};
 
-    patchmf = mmap_file_new(pfn, MMAP_READ);
-    mmap_open(&patchmf);
+    if (c->patch.status == -1)
+        return ERROR_PATCH_FILE_MMAP;
 
-    if (!patchmf.status)
-        error(ERROR_PATCH_FILE_MMAP);
+    if (c->patch.size < 18)
+        return UPS_TOO_SMALL;
 
-    if (patchmf.size < 18)
-        error(UPS_TOO_SMALL);
-
-    patch = patchmf.handle;
+    patch = c->patch.handle;
     patchstart = patch;
-    patchend = patch + patchmf.size;
+    patchend = patch + c->patch.size;
     patchcrc = patchend - 12;
 
     if (~flags->ignore_crc & FLAG_CRC_PATCH)
     {
-        stored_crc[2] = read32le(patchcrc + 8);
-        actual_crc[2] = crc32(patchstart, patchmf.size - 4, 0);
+        scrc[2] = read32le(patchcrc + 8);
+        acrc[2] = crc32(patchstart, c->patch.size - 4, 0);
 
-        if (stored_crc[2] != actual_crc[2])
-        {
-            if (flags->strict_crc & FLAG_CRC_PATCH)
-                error(UPS_PATCH_CRC_NOMATCH);
-            else
-                report(UPS_PATCH_CRC_NOMATCH);
-        }
+        error(scrc[2] != acrc[2], flags->strict_crc & FLAG_CRC_PATCH, UPS_PATCH_CRC_NOMATCH);
     }
 
     if (patch8() != 'U' || patch8() != 'P' || patch8() != 'S' || patch8() != '1')
-        error(UPS_INVALID_HEADER);
+        return UPS_INVALID_HEADER;
 
     size_t input_size = readvint(&patch);
     size_t output_size = readvint(&patch);
 
-    inputmf = mmap_file_new(ifn, MMAP_READ);
-    mmap_open(&inputmf);
+    c->input = mmap_file_new(c->fn.input, 1);
+    mmap_open(&c->input);
 
-    if (!inputmf.status)
-        error(ERROR_INPUT_FILE_MMAP);
+    if (c->input.status == -1)
+        return ERROR_INPUT_FILE_MMAP;
 
-    input = inputmf.handle;
-    inputend = input + inputmf.size;
+    input = c->input.handle;
+    inputend = input + c->input.size;
 
-    if (inputmf.size != input_size)
+    if (c->input.size != input_size)
         fprintf(stderr, "Input file sizes don't match.\n");
 
     if (~flags->ignore_crc & FLAG_CRC_INPUT)
     {
-        stored_crc[0] = read32le(patchcrc);
-        actual_crc[0] = crc32(input, input_size, 0);
+        scrc[0] = read32le(patchcrc);
+        acrc[0] = crc32(input, input_size, 0);
 
-        if (stored_crc[0] != actual_crc[0])
-        {
-            if (flags->strict_crc & FLAG_CRC_INPUT)
-                error(UPS_INPUT_CRC_NOMATCH);
-            else
-                report(UPS_INPUT_CRC_NOMATCH);
-        }
+        error(scrc[0] != acrc[0], flags->strict_crc & FLAG_CRC_INPUT, UPS_INPUT_CRC_NOMATCH);
     }
 
-    outputmf = mmap_file_new(ofn, MMAP_WRITE);
-    mmap_create(&outputmf, output_size);
+    c->output = mmap_file_new(c->fn.output, 0);
+    mmap_create(&c->output, output_size);
 
-    if (!outputmf.status)
-        error(ERROR_OUTPUT_FILE_MMAP);
+    if (c->output.status == -1)
+        return ERROR_OUTPUT_FILE_MMAP;
 
-    output = outputmf.handle;
-    outputend = output + outputmf.size;
+    output = c->output.handle;
+    outputend = output + c->output.size;
 
     while (patch < patchcrc)
     {
@@ -153,28 +124,16 @@ static int ups_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
 
     if (~flags->ignore_crc & FLAG_CRC_OUTPUT)
     {
-        stored_crc[1] = read32le(patchcrc + 4);
-        actual_crc[1] = crc32(outputmf.handle, outputmf.size, 0);
-
-        if (stored_crc[1] != actual_crc[1])
-        {
-            if (flags->strict_crc & FLAG_CRC_OUTPUT)
-                error(UPS_OUTPUT_CRC_NOMATCH);
-            else
-                report(UPS_OUTPUT_CRC_NOMATCH);
-        }
+        scrc[1] = read32le(patchcrc + 4);
+        acrc[1] = crc32(c->output.handle, c->output.size, 0);
+        error(scrc[1] != acrc[1], flags->strict_crc & FLAG_CRC_OUTPUT, UPS_OUTPUT_CRC_NOMATCH);
     }
 
-#undef report
 #undef error
 #undef patch8
 #undef input8
 #undef writeout8
 
-end:
-    mmap_close(&patchmf);
-    mmap_close(&inputmf);
-    mmap_close(&outputmf);
-
-    return ret;
+    return UPS_SUCCESS;
 }
+

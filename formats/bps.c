@@ -27,10 +27,7 @@ enum bps_error
 };
 
 static const char *bps_error_messages[BPS_ERROR_COUNT];
-static inline int bps_check(uint8_t *patch);
-static int bps_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags);
-
-const patch_format_t bps_patch_format = { "BPS", 4, bps_check, bps_patch, bps_error_messages };
+static int bps_patch(patch_context_t *c);
 
 static const char *bps_error_messages[BPS_ERROR_COUNT] = {
     [BPS_SUCCESS] = "BPS patching successful.",
@@ -39,107 +36,83 @@ static const char *bps_error_messages[BPS_ERROR_COUNT] = {
     [BPS_INVALID_ACTION] = "Invalid BPS patching action.",
 };
 
-static inline int bps_check(uint8_t *patch)
-{
-    char patch_header[4] = {'B', 'P', 'S', '1'};
-    for (int i = 0; i < 4; i++)
-    {
-        if (patch_header[i] != patch[i])
-            return 0;
-    }
-    return 1;
-}
+const patch_format_t bps_format = { "BPS", "BPS1", 4, bps_patch, bps_error_messages };
 
-static int bps_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
+static int bps_patch(patch_context_t *c)
 {
-#define report(i) (fprintf(stderr, "%s\n", bps_error_messages[i]))
-#define error(i)  \
-    do            \
-    {             \
-        ret = i;  \
-        goto end; \
-    } while (0)
+#define error(a, b, i) \
+    if ((a)) { \
+        if ((b)) { \
+            fprintf(stderr, "%s\n", bps_error_messages[i]); \
+        } else { \
+            return i; \
+        } \
+    } \
 
 #define patch8() (patch < patchend ? *(patch++) : 0)
 #define input8() (input < inputend ? *(input++) : 0)
 #define sign(b) ((b & 1 ? -1 : +1) * (b >> 1))
 
     int ret = BPS_SUCCESS;
+    patch_flags_t *flags = c->flags;
 
-    mmap_file_t patchmf, inputmf, outputmf;
     uint8_t *patch, *patchstart, *patchend, *patchcrc;
     uint8_t *input;
     uint8_t *output, *outputstart;
 
-    uint32_t actual_crc[3] = {0, 0, 0};
-    uint32_t stored_crc[3] = {0, 0, 0};
+    uint32_t acrc[3] = {0, 0, 0};
+    uint32_t scrc[3] = {0, 0, 0};
 
-    patchmf = mmap_file_new(pfn, MMAP_READ);
-    mmap_open(&patchmf);
+    if (c->patch.status == -1)
+        return ERROR_PATCH_FILE_MMAP;
 
-    if (patchmf.status == -1)
-        error(ERROR_PATCH_FILE_MMAP);
+    if (c->patch.size < 19)
+        return BPS_TOO_SMALL;
 
-    if (patchmf.size < 19)
-        error(BPS_TOO_SMALL);
-
-    patch = patchmf.handle;
+    patch = c->patch.handle;
     patchstart = patch;
-    patchend = patch + patchmf.size;
+    patchend = patch + c->patch.size;
     patchcrc = patchend - 12;
 
     if (~flags->ignore_crc & FLAG_CRC_PATCH)
     {
-        stored_crc[2] = read32le(patchcrc + 8);
-        actual_crc[2] = crc32(patchstart, patchmf.size - 4, 0);
-
-        if (stored_crc[2] != actual_crc[2])
-        {
-            if (flags->strict_crc & FLAG_CRC_PATCH)
-                error(BPS_PATCH_CRC_NOMATCH);
-            else
-                report(BPS_PATCH_CRC_NOMATCH);
-        }
+        scrc[2] = read32le(patchcrc + 8);
+        acrc[2] = crc32(patchstart, c->patch.size - 4, 0);
+        error(scrc[2] != acrc[2], flags->strict_crc & FLAG_CRC_PATCH, BPS_PATCH_CRC_NOMATCH);
     }
 
     if (patch8() != 'B' || patch8() != 'P' || patch8() != 'S' || patch8() != '1')
-        error(BPS_INVALID_HEADER);
+        return BPS_INVALID_HEADER;
 
     size_t input_size = readvint(&patch);
     size_t output_size = readvint(&patch);
 
-    inputmf = mmap_file_new(ifn, MMAP_READ);
-    mmap_open(&inputmf);
-    if (inputmf.status == -1)
-        error(ERROR_INPUT_FILE_MMAP);
+    c->input = mmap_file_new(c->fn.input, 1);
+    mmap_open(&c->input);
 
-    input = inputmf.handle;
+    if (c->input.status == -1)
+        return ERROR_INPUT_FILE_MMAP;
 
-    if (inputmf.size != input_size)
+    input = c->input.handle;
+
+    if (c->input.size != input_size)
         fprintf(stderr, "Input file sizes don't match.\n");
 
     if (~flags->ignore_crc & FLAG_CRC_INPUT)
     {
-        stored_crc[0] = read32le(patchcrc);
-        actual_crc[0] = crc32(input, input_size, 0);
-
-        if (stored_crc[0] != actual_crc[0])
-        {
-            if (flags->strict_crc & FLAG_CRC_INPUT)
-                error(BPS_INPUT_CRC_NOMATCH);
-            else
-                report(BPS_INPUT_CRC_NOMATCH);
-        }
+        scrc[0] = read32le(patchcrc);
+        acrc[0] = crc32(input, input_size, 0);
+        error(scrc[0] != acrc[0], flags->strict_crc & FLAG_CRC_INPUT, BPS_INPUT_CRC_NOMATCH);
     }
 
-    outputmf = mmap_file_new(ofn, MMAP_WRITEREAD);
-    mmap_create(&outputmf, output_size);
+    c->output = mmap_file_new(c->fn.output, 0);
+    mmap_create(&c->output, output_size);
 
-    if (!outputmf.status)
-        error(ERROR_OUTPUT_FILE_MMAP);
+    if (c->output.status == -1)
+        return ERROR_OUTPUT_FILE_MMAP;
 
-    output = outputmf.handle;
-    outputstart = outputmf.handle;
+    output = c->output.handle;
+    outputstart = c->output.handle;
 
     size_t metadata_size = readvint(&patch);
     patch += metadata_size;
@@ -186,34 +159,23 @@ static int bps_patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
             break;
 
         default:
-            error(BPS_INVALID_ACTION);
+            return BPS_INVALID_ACTION;
         }
     }
 
     if (~flags->ignore_crc & FLAG_CRC_OUTPUT)
     {
-        stored_crc[1] = read32le(patchcrc + 4);
-        actual_crc[1] = crc32(outputmf.handle, outputmf.size, 0);
-
-        if (stored_crc[1] != actual_crc[1])
-        {
-            if (flags->strict_crc & FLAG_CRC_OUTPUT)
-                error(BPS_OUTPUT_CRC_NOMATCH);
-            else
-                report(BPS_OUTPUT_CRC_NOMATCH);
-        }
+        scrc[1] = read32le(patchcrc + 4);
+        acrc[1] = crc32(c->output.handle, c->output.size, 0);
+        error(scrc[1] != acrc[1], flags->strict_crc & FLAG_CRC_OUTPUT, BPS_OUTPUT_CRC_NOMATCH);
     }
 
-#undef report
 #undef error
 #undef patch8
 #undef input8
 #undef sign
 
-end:
-    mmap_close(&patchmf);
-    mmap_close(&inputmf);
-    mmap_close(&outputmf);
-
     return ret;
 }
+
+

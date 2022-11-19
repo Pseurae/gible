@@ -8,19 +8,10 @@
 #include <windows.h>
 #endif
 
-typedef enum mmap_mode
-{
-    MMAP_READ,
-    MMAP_WRITE,
-    MMAP_READWRITE,
-    MMAP_WRITEREAD,
-    MMAP_MODE_COUNT
-} mmap_mode_t;
-
 typedef struct mmap_file
 {
     char *fn;
-    mmap_mode_t mode;
+    int readonly;
     int32_t status;
     size_t size;
     uint8_t *handle;
@@ -32,7 +23,7 @@ typedef struct mmap_file
 #endif
 } mmap_file_t;
 
-mmap_file_t mmap_file_new(char *fn, mmap_mode_t mode);
+mmap_file_t mmap_file_new(char *fn, int readonly);
 int mmap_create(mmap_file_t *f, size_t size);
 int mmap_open(mmap_file_t *f);
 void mmap_close(mmap_file_t *f);

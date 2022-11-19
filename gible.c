@@ -12,13 +12,6 @@
 
 #define HEADER_REGION_LEN 10
 
-static const patch_format_t *patch_formats[] = {
-    &ips_patch_format,
-    &ips32_patch_format,
-    &ups_patch_format,
-    &bps_patch_format,
-};
-
 static const char *gible_description = "Yet another rom patcher.";
 static const char *gible_usage[] = {
     "<patch> <input> <output> [-tyui] [-fgjk] [-b] [-v]",
@@ -72,18 +65,6 @@ static int gible_main(int argc, char *argv[])
 
     argc_option_t options[] = {
         ARGC_OPT_HELP(),
-        ARGC_OPT_FLAG('t', "ignore-patch-crc", &flags.ignore_crc, FLAG_CRC_PATCH, "Ignores patch file crc.", 0, NULL),
-        ARGC_OPT_FLAG('y', "ignore-input-crc", &flags.ignore_crc, FLAG_CRC_INPUT, "Ignores input file crc.", 0, NULL),
-        ARGC_OPT_FLAG('u', "ignore-output-crc", &flags.ignore_crc, FLAG_CRC_OUTPUT, "Ignores output file crc.", 0, NULL),
-        ARGC_OPT_FLAG('i', "ignore-crc", &flags.ignore_crc, FLAG_CRC_ALL, "Ignores all crc checks.", 0, NULL),
-
-        ARGC_OPT_FLAG('f', "strict-patch-crc", &flags.strict_crc, FLAG_CRC_PATCH, "Aborts on patch crc mismatch.", 0, NULL),
-        ARGC_OPT_FLAG('g', "strict-input-crc", &flags.strict_crc, FLAG_CRC_INPUT, "Aborts on input crc mismatch.", 0, NULL),
-        ARGC_OPT_FLAG('j', "strict-output-crc", &flags.strict_crc, FLAG_CRC_OUTPUT, "Aborts on output crc mismatch (Not really useful).", 0, NULL),
-        ARGC_OPT_FLAG('k', "strict-crc", &flags.strict_crc, FLAG_CRC_ALL, "Ignores all crc checks.", 0, NULL),
-
-        // ARGC_OPT_BOOLEAN('b', "prefer-filebuffer", &flags.verbose, 0, "Uses filebuffer mode over mmap.", 0, NULL),
-        // ARGC_OPT_BOOLEAN('v', "verbose", &flags.verbose, 0, "Verbose mode.", 0, NULL),
         ARGC_OPT_END(),
     };
 
@@ -121,34 +102,52 @@ static int gible_main(int argc, char *argv[])
     return patch(pfn, ifn, ofn, &flags);
 }
 
+static const patch_format_t *patch_formats[] = {
+    &ips_format,
+    &ips32_format,
+    &ups_format,
+    &bps_format,
+    NULL
+};
+
 static int patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
 {
-    uint8_t header_buf[HEADER_REGION_LEN];
-    FILE *p = fopen(pfn, "r");
-    int numbytes = fread(header_buf, sizeof(char), HEADER_REGION_LEN, p);
-    fclose(p);
+    patch_context_t c;
+
+    c.fn.patch = pfn;
+    c.fn.input = ifn;
+    c.fn.output = ofn;
+
+    c.patch = mmap_file_new(pfn, 1);
+    c.flags = flags;
+
+    mmap_open(&c.patch);
 
     for (const patch_format_t **format = patch_formats; *format; format++)
     {
-        if ((*format)->header_len > numbytes)
+        char *header = (*format)->header;
+        uint8_t header_len = (*format)->header_len;
+
+        if (memcmp(c.patch.handle, header, header_len))
             continue;
 
-        if ((*format)->check(header_buf))
-        {
-            int ret = (*format)->main(pfn, ifn, ofn, flags);
+        int return_code = (*format)->main(&c);
 
-            if (ret < ERROR_OUTPUT_FILE_MMAP)
-                fprintf(stderr, "%s\n", (*format)->error_msgs[ret]);
-            else
-                fprintf(stderr, "%s\n", mmap_errors[INT16_MAX - ret - 1]);
+        if (return_code < ERROR_OUTPUT_FILE_MMAP)
+            fprintf(stderr, "%s\n", (*format)->error_msgs[return_code]);
+        else
+            fprintf(stderr, "%s\n", mmap_errors[INT16_MAX - return_code - 1]);
 
-            if (ret > 0)
-                return 1;
-            else
-                return 0;
-        }
+        mmap_close(&c.patch);
+        mmap_close(&c.input);
+        mmap_close(&c.output);
+
+        if (return_code > 0)
+            return 1;
+        else
+            return 0;
     }
 
-    fprintf(stderr, "Unsupported patch type.\n");
+    fprintf(stderr, "Unsupported Patch Type.\n");
     return 1;
 }
