@@ -13,9 +13,6 @@
 #define FLAG_CRC_OUTPUT (1 << 5)
 #define FLAG_CRC_ALL (FLAG_CRC_PATCH | FLAG_CRC_INPUT | FLAG_CRC_OUTPUT)
 
-struct patch_context;
-typedef struct patch_context patch_context_t;
-
 // By default, checksums are checked at the end.
 typedef struct patch_flags
 {
@@ -27,17 +24,6 @@ typedef struct patch_flags
     uint8_t use_filebuffer; // Not implemented. Yet.
     uint8_t verbose;        // Is the output verbose?
 } patch_flags_t;
-
-typedef int (*patch_main)(patch_context_t *);
-
-typedef struct patch_format
-{
-    char *name;
-    char *header;
-    uint8_t header_len;
-    patch_main main;
-    const char **error_msgs;
-} patch_format_t;
 
 typedef struct patch_context
 {
@@ -51,6 +37,17 @@ typedef struct patch_context
     mmap_file_t output;
     patch_flags_t *flags;
 } patch_context_t;
+
+typedef int (*patch_main)(patch_context_t *);
+
+typedef struct patch_format
+{
+    char *name;
+    char *header;
+    uint8_t header_len;
+    patch_main main;
+    const char **error_msgs;
+} patch_format_t;
 
 extern const patch_format_t ips_format;
 extern const patch_format_t ips32_format;

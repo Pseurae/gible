@@ -3,9 +3,8 @@
 #include <string.h>
 #include <time.h>
 
-#define ARGC_IMPLEMENTATION
 #include "argc.h"
-
+#include "log.h"
 #include "utils.h"
 #include "filemap.h"
 #include "format.h"
@@ -38,19 +37,19 @@ static int are_filenames_same(char *pfn, char *ifn, char *ofn)
 {
     if (!strcmp(pfn, ifn))
     {
-        fprintf(stderr, "Error: Patch and input filenames are the same.\n");
+        gible_error("Error: Patch and input filenames are the same.");
         return 1;
     }
 
     if (!strcmp(ifn, ofn))
     {
-        fprintf(stderr, "Error: Input and output filenames are the same.\n");
+        gible_error("Error: Input and output filenames are the same.");
         return 1;
     }
 
     if (!strcmp(pfn, ofn))
     {
-        fprintf(stderr, "Error: Patch and output filenames are the same.\n");
+        gible_error("Error: Patch and output filenames are the same.");
         return 1;
     }
 
@@ -89,13 +88,13 @@ static int gible_main(int argc, char *argv[])
 
     if (!file_exists(pfn))
     {
-        fprintf(stderr, "Patch file does not exist.\n");
+        gible_error("Patch file does not exist.");
         return 1;
     }
 
     if (!file_exists(ifn))
     {
-        fprintf(stderr, "Input file does not exist.\n");
+        gible_error("Input file does not exist.");
         return 1;
     }
 
@@ -134,9 +133,13 @@ static int patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
         int return_code = (*format)->main(&c);
 
         if (return_code < ERROR_OUTPUT_FILE_MMAP)
-            fprintf(stderr, "%s\n", (*format)->error_msgs[return_code]);
+        {
+            gible_error("%s\n", (*format)->error_msgs[return_code]);
+        }
         else
-            fprintf(stderr, "%s\n", mmap_errors[INT16_MAX - return_code - 1]);
+        {
+            gible_error("%s\n", mmap_errors[INT16_MAX - return_code - 1]);
+        }
 
         mmap_close(&c.patch);
         mmap_close(&c.input);
@@ -148,6 +151,6 @@ static int patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
             return 0;
     }
 
-    fprintf(stderr, "Unsupported Patch Type.\n");
+    gible_error("Error: Unsupported Patch Type.");
     return 1;
 }

@@ -9,9 +9,8 @@ CC			:= gcc
 else
 CC			:= $(TOOLCHAIN)-gcc
 endif
-CFLAGS		:= -I. -O3 -ffunction-sections -Wall -Wextra -MMD
+CFLAGS		:= -I. -O3 -std=c99 -ffunction-sections -Wall -Wextra -MMD
 
-HEADERS 	:= $(shell find . -name "*.h")
 SRC			:= $(shell find . -name "*.c")
 
 OBJ_DIR 	:= build
