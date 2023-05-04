@@ -3,10 +3,6 @@
 
 #include <stdio.h>
 
-#define gible_error(s, ...) \
-{ \
-    fprintf(stderr, s, ##__VA_ARGS__); \
-    fprintf(stderr, "\n"); \
-}
+void gible_error(const char *fmt, ...);
 
 #endif // LOG_H

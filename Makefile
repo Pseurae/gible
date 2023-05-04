@@ -1,22 +1,20 @@
-TOOLCHAIN 	?= 
+TOOLCHAIN 		?= 
+BUILD_SUFFIX 	?= 
 
 ifeq (windows, $(MAKECMDGOALS))
-TOOLCHAIN	:= x86_64-w64-mingw32
+TOOLCHAIN		:= x86_64-w64-mingw32-
+BUILD_SUFFIX	:= -windows
 endif
 
-ifeq (,$(TOOLCHAIN))
-CC			:= gcc
-else
-CC			:= $(TOOLCHAIN)-gcc
-endif
-CFLAGS		:= -I. -O3 -std=c99 -ffunction-sections -Wall -Wextra -MMD
+CC				:= $(TOOLCHAIN)gcc
+CFLAGS			:= -I. -O3 -std=c99 -ffunction-sections -Wall -Wextra -MMD
 
-SRC			:= $(shell find . -name "*.c")
+SRC				:= $(shell find . -name "*.c")
 
-OBJ_DIR 	:= build
-OBJ_NAMES	:= $(SRC:.c=.o)
-OBJ_PATHS	:= $(OBJ_NAMES:./%=$(OBJ_DIR)/%)
-DEP_NAMES	:= $(OBJ_PATHS:%.o=%.d)
+OBJ_DIR 		:= build$(BUILD_SUFFIX)
+OBJ_NAMES		:= $(SRC:.c=.o)
+OBJ_PATHS		:= $(OBJ_NAMES:./%=$(OBJ_DIR)/%)
+DEP_NAMES		:= $(OBJ_PATHS:%.o=%.d)
 
 $(OBJ_DIR)/%.o: %.c
 	@mkdir -p $(shell dirname "$@")

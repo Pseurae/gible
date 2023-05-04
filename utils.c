@@ -14,18 +14,18 @@
 
 int file_exists(const char *fn) { return access(fn, F_OK) == 0; }
 
-inline uint32_t read32le(uint8_t *ptr)
+inline unsigned int read32le(unsigned char *ptr)
 {
 	return ptr[0] | ptr[1] << 8 | ptr[2] << 16 | ptr[3] << 24;
 }
 
-inline size_t readvint(uint8_t **stream)
+inline size_t readvint(unsigned char **stream)
 {
 	size_t result = 0, shift = 0;
 
 	while (1)
 	{
-		uint8_t octet = *((*stream)++);
+		unsigned char octet = *((*stream)++);
 		if (octet & 0x80)
 		{
 			result += (octet & 0x7f) << shift;

@@ -1,13 +1,11 @@
+#include "argc.h"
+#include "filemap.h"
+#include "format.h"
+#include "log.h"
+#include "utils.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
-
-#include "argc.h"
-#include "log.h"
-#include "utils.h"
-#include "filemap.h"
-#include "format.h"
 
 #define HEADER_REGION_LEN 10
 
@@ -17,10 +15,11 @@ static const char *gible_usage[] = {
     NULL,
 };
 
-static const char *mmap_errors[] = {
-    "Cannot open the given patch file.",
-    "Cannot open the given input file.",
-    "Cannot open the given output file.",
+static const char *general_errors[] = {
+    [PATCH_RET_SUCCESS] = "Successfully patched.",
+    [PATCH_RET_INVALID_PATCH] = "Cannot open the given patch file.",
+    [PATCH_RET_INVALID_INPUT] = "Cannot open the given input file.",
+    [PATCH_RET_INVALID_OUTPUT] = "Cannot open the given output file.",
 };
 
 int main(int argc, char *argv[]);
@@ -67,7 +66,8 @@ static int gible_main(int argc, char *argv[])
         ARGC_OPT_END(),
     };
 
-    argc_parser_t parser = argc_parser_new(*argv, options, ARGC_PARSER_FLAGS_STOP_UNKNOWN | ARGC_PARSER_FLAGS_HELP_ON_UNKNOWN);
+    argc_parser_t parser =
+        argc_parser_new(*argv, options, ARGC_PARSER_FLAGS_STOP_UNKNOWN | ARGC_PARSER_FLAGS_HELP_ON_UNKNOWN);
     argc_parser_set_messages(&parser, gible_description, gible_usage);
 
     if (!argc_parser_parse(&parser, argc - 1, argv + 1))
@@ -101,13 +101,7 @@ static int gible_main(int argc, char *argv[])
     return patch(pfn, ifn, ofn, &flags);
 }
 
-static const patch_format_t *patch_formats[] = {
-    &ips_format,
-    &ips32_format,
-    &ups_format,
-    &bps_format,
-    NULL
-};
+static const patch_format_t *patch_formats[] = { &ips_format, &ips32_format, &ups_format, &bps_format, NULL };
 
 static int patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
 {
@@ -116,6 +110,7 @@ static int patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
     c.fn.patch = pfn;
     c.fn.input = ifn;
     c.fn.output = ofn;
+    c.error = NULL;
 
     c.patch = mmap_file_new(pfn, 1);
     c.flags = flags;
@@ -125,32 +120,33 @@ static int patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
     for (const patch_format_t **format = patch_formats; *format; format++)
     {
         char *header = (*format)->header;
-        uint8_t header_len = (*format)->header_len;
+        unsigned char header_len = (*format)->header_len;
 
         if (memcmp(c.patch.handle, header, header_len))
             continue;
 
         int return_code = (*format)->main(&c);
 
-        if (return_code < ERROR_OUTPUT_FILE_MMAP)
-        {
-            gible_error("%s\n", (*format)->error_msgs[return_code]);
-        }
-        else
-        {
-            gible_error("%s\n", mmap_errors[INT16_MAX - return_code - 1]);
-        }
-
         mmap_close(&c.patch);
         mmap_close(&c.input);
         mmap_close(&c.output);
 
-        if (return_code > 0)
-            return 1;
-        else
-            return 0;
+        switch (return_code)
+        {
+        case 0:
+            gible_error("%s successfully patched.", (*format)->name);
+            break;
+        case -1:
+            if (c.error) gible_error(c.error);
+            break;
+        default:
+            gible_error(general_errors[return_code]);
+            break;
+        }
+
+        return return_code != 0;
     }
 
-    gible_error("Error: Unsupported Patch Type.");
+    gible_error("Unsupported Patch Type.");
     return 1;
 }

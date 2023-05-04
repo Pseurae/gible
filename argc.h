@@ -1,37 +1,51 @@
 #ifndef ARGC_H
 #define ARGC_H
 
-#include <stdio.h> // fprintf, stderr, fputc
+#include <errno.h>  // errno, ERANGE
+#include <stdio.h>  // fprintf, stderr, fputc
 #include <stdlib.h> // strtol, strtof
 #include <string.h> // strcmp
-#include <errno.h> // errno, ERANGE
 
-#define ARGC_OPTION_FLAGS_INVERT (1 << 0)
+#define ARGC_OPTION_FLAGS_INVERT          (1 << 0)
 
-#define ARGC_PARSER_FLAGS_STOP_UNKNOWN (1 << 0)
+#define ARGC_PARSER_FLAGS_STOP_UNKNOWN    (1 << 0)
 #define ARGC_PARSER_FLAGS_HELP_ON_UNKNOWN (1 << 1)
-#define ARGC_PARSER_FLAGS_NO_POSITIONAL (1 << 2)
+#define ARGC_PARSER_FLAGS_NO_POSITIONAL   (1 << 2)
 
-#define ARGC_OPT_STRING(...) \
-    { ARGC_TYPE_STRING, __VA_ARGS__ }
+#define ARGC_OPT_STRING(...)                                                                                           \
+    {                                                                                                                  \
+        ARGC_TYPE_STRING, __VA_ARGS__                                                                                  \
+    }
 
-#define ARGC_OPT_FLAG(...) \
-    { ARGC_TYPE_FLAG, __VA_ARGS__ }
+#define ARGC_OPT_FLAG(...)                                                                                             \
+    {                                                                                                                  \
+        ARGC_TYPE_FLAG, __VA_ARGS__                                                                                    \
+    }
 
-#define ARGC_OPT_BOOLEAN(...) \
-    { ARGC_TYPE_BOOLEAN, __VA_ARGS__ }
+#define ARGC_OPT_BOOLEAN(...)                                                                                          \
+    {                                                                                                                  \
+        ARGC_TYPE_BOOLEAN, __VA_ARGS__                                                                                 \
+    }
 
-#define ARGC_OPT_INTEGER(...) \
-    { ARGC_TYPE_INTEGER, __VA_ARGS__ }
+#define ARGC_OPT_INTEGER(...)                                                                                          \
+    {                                                                                                                  \
+        ARGC_TYPE_INTEGER, __VA_ARGS__                                                                                 \
+    }
 
-#define ARGC_OPT_FLOAT(...) \
-    { ARGC_TYPE_FLOAT, __VA_ARGS__ }
+#define ARGC_OPT_FLOAT(...)                                                                                            \
+    {                                                                                                                  \
+        ARGC_TYPE_FLOAT, __VA_ARGS__                                                                                   \
+    }
 
-#define ARGC_OPT_END() \
-    { ARGC_TYPE_END, 0, NULL, NULL, 0, NULL, 0, NULL }
+#define ARGC_OPT_END()                                                                                                 \
+    {                                                                                                                  \
+        ARGC_TYPE_END, 0, NULL, NULL, 0, NULL, 0, NULL                                                                 \
+    }
 
-#define ARGC_OPT_HELP() \
-    { ARGC_TYPE_CALLBACK, 'h', "help", NULL, 0, "Displays this message.", 0, argc_parser_help_callback }
+#define ARGC_OPT_HELP()                                                                                                \
+    {                                                                                                                  \
+        ARGC_TYPE_CALLBACK, 'h', "help", NULL, 0, "Displays this message.", 0, argc_parser_help_callback               \
+    }
 
 enum argc_type
 {
@@ -102,4 +116,3 @@ void argc_parser_help_callback(argc_parser_t *par, argc_option_t *option);
 int argc_parser_parse(argc_parser_t *par, int argc, char **argv);
 
 #endif /* ARGC_LIB_H */
-

@@ -55,7 +55,7 @@ dkms.conf
 .DS_Store
 [Dd]esktop.ini
 .vscode/
-build/
+build*/
 output
 output.**
 gible

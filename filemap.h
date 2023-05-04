@@ -1,8 +1,8 @@
 #ifndef MMAP_H
 #define MMAP_H
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #if defined(_WIN32)
 #include <windows.h>
@@ -14,7 +14,7 @@ typedef struct mmap_file
     int readonly;
     int32_t status;
     size_t size;
-    uint8_t *handle;
+    unsigned char *handle;
 #if defined(_WIN32)
     HANDLE filehandle;
     HANDLE maphandle;

@@ -82,7 +82,7 @@ int mmap_create_internal(mmap_file_t *f)
         return 0;
     }
 
-    f->handle = (uint8_t *)MapViewOfFile(f->maphandle, map_access, 0, 0, 0);
+    f->handle = (unsigned char *)MapViewOfFile(f->maphandle, map_access, 0, 0, 0);
     f->status = 1;
     return 1;
 };
@@ -125,7 +125,7 @@ int mmap_open_internal(mmap_file_t *f)
         return 0;
     }
 
-    f->handle = (uint8_t *)MapViewOfFile(f->maphandle, map_access, 0, 0, 0);
+    f->handle = (unsigned char *)MapViewOfFile(f->maphandle, map_access, 0, 0, 0);
     f->status = 1;
     return 1;
 };
@@ -173,7 +173,7 @@ int mmap_create_internal(mmap_file_t *f)
     }
 
     ftruncate(f->fd, f->size);
-    f->handle = (uint8_t *)mmap(0, f->size, protect_flags, MAP_SHARED, f->fd, 0);
+    f->handle = (unsigned char *)mmap(0, f->size, protect_flags, MAP_SHARED, f->fd, 0);
 
     if (f->handle == MAP_FAILED)
     {
@@ -204,7 +204,7 @@ int mmap_open_internal(mmap_file_t *f)
     fstat(f->fd, &p_stat);
     f->size = p_stat.st_size;
 
-    f->handle = (uint8_t *)mmap(0, f->size, protect_flags, MAP_SHARED, f->fd, 0);
+    f->handle = (unsigned char *)mmap(0, f->size, protect_flags, MAP_SHARED, f->fd, 0);
 
     if (f->handle == MAP_FAILED)
     {

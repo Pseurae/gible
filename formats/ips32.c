@@ -14,27 +14,18 @@ enum ips32_error
     IPS32_ERROR_COUNT
 };
 
-static const char *ips32_error_messages[IPS32_ERROR_COUNT];
 static int ips32_patch(patch_context_t *);
-
-static const char *ips32_error_messages[IPS32_ERROR_COUNT] = {
-    [IPS32_SUCCESS] = "IPS32 patching successful.",
-    [IPS32_INVALID_HEADER] = "Invalid header for an IPS32 file.",
-    [IPS32_TOO_SMALL] = "Patch file is too small to be an IPS32 file.",
-    [IPS32_NO_FOOTER] = "EEOF footer not found."
-};
-
-const patch_format_t ips32_format = { "IPS32", "IPS32", 5, ips32_patch, ips32_error_messages };
+const patch_format_t ips32_format = { "IPS32", "IPS32", 5, ips32_patch };
 
 static int ips32_patch(patch_context_t *c)
 {
-    uint8_t *patch, *patchend, *input, *output;
+    unsigned char *patch, *patchend, *input, *output;
 
     if (c->patch.status == -1)
-        return ERROR_PATCH_FILE_MMAP;
+        return PATCH_RET_INVALID_PATCH;
 
     if (c->patch.size < 8)
-        return IPS32_TOO_SMALL;
+        return PATCH_ERROR(c, "Patch file is too small to be an IPS32 file.");
 
     patch = c->patch.handle;
     patchend = patch + c->patch.size;
@@ -43,14 +34,15 @@ static int ips32_patch(patch_context_t *c)
 #define patch16() ((patch + 2 < patchend) ? (patch += 2, (patch[-2] << 8 | patch[-1])) : 0)
 #define patch32() ((patch + 4 < patchend) ? (patch += 4, (patch[-4] << 24 | patch[-3] << 16 | patch[-2] << 8 | patch[-1])) : 0)
 
+    // Never gonna get called, unless the function gets used directly.
     if (patch8() != 'I' || patch8() != 'P' || patch8() != 'S' || patch8() != '3' || patch8() != '2')
-        return IPS32_INVALID_HEADER; // Never gonna get called, unless the function gets used directly.
+        return PATCH_ERROR(c, "Invalid header for an IPS32 file.");
 
     c->input = mmap_file_new(c->fn.input, 1);
     mmap_open(&c->input);
 
     if (c->input.status == -1)
-        return ERROR_INPUT_FILE_MMAP;
+        return PATCH_RET_INVALID_INPUT;
 
     input = c->input.handle;
 
@@ -58,7 +50,7 @@ static int ips32_patch(patch_context_t *c)
     mmap_create(&c->output, c->input.size);
 
     if (!c->output.status)
-        return ERROR_OUTPUT_FILE_MMAP;
+        return PATCH_RET_INVALID_OUTPUT;
 
     output = c->output.handle;
 
@@ -68,10 +60,10 @@ static int ips32_patch(patch_context_t *c)
 
     while (patch < patchend - 4)
     {
-        uint32_t offset = patch32();
-        uint16_t size = patch16();
+        unsigned int offset = patch32();
+        unsigned short size = patch16();
 
-        uint8_t *outputoff = (output + offset);
+        unsigned char *outputoff = (output + offset);
 
         if (size)
         {
@@ -81,7 +73,7 @@ static int ips32_patch(patch_context_t *c)
         else
         {
             size = patch16();
-            uint8_t byte = patch8();
+            unsigned char byte = patch8();
 
             while (size--)
                 *(outputoff++) = byte;
@@ -89,12 +81,12 @@ static int ips32_patch(patch_context_t *c)
     }
 
     if (patch8() != 'E' || patch8() != 'E' || patch8() != 'O' || patch8() != 'F')
-        return IPS32_NO_FOOTER;
+        return PATCH_ERROR(c, "EEOF footer not found.");
 
 #undef patch8
 #undef patch16
 #undef patch32
 
-    return IPS32_SUCCESS;
+    return PATCH_RET_SUCCESS;
 }
 

@@ -1,0 +1,27 @@
+AlignTrailingComments: true
+AlignAfterOpenBracket: false
+Cpp11BracedListStyle: false
+BinPackArguments: false
+AllowShortFunctionsOnASingleLine: false
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+BreakBeforeBinaryOperators: false
+IndentWidth: 4
+NamespaceIndentation: All
+AllowAllParametersOfDeclarationOnNextLine: false
+BreakBeforeBraces: Allman
+IndentPPDirectives: None
+ColumnLimit: 120
+AlignConsecutiveMacros:
+  Enabled: true
+  AcrossEmptyLines: true
+  AcrossComments: false
+AlignConsecutiveBitFields: false
+BitFieldColonSpacing: None
+AlignOperands: AlignAfterOperator
+IncludeBlocks: Merge
+IncludeCategories:
+  - Regex: '^".+'
+    Priority: 2
+SortIncludes: true
+AlignArrayOfStructures: Right
