@@ -63,6 +63,15 @@ static int gible_main(int argc, char *argv[])
 
     argc_option_t options[] = {
         ARGC_OPT_HELP(),
+        ARGC_OPT_FLAG('t', "ignore-patch-crc", &flags.ignore_crc, FLAG_CRC_PATCH, "Ignores patch file crc.", 0, NULL),
+        ARGC_OPT_FLAG('y', "ignore-input-crc", &flags.ignore_crc, FLAG_CRC_INPUT, "Ignores input file crc.", 0, NULL),
+        ARGC_OPT_FLAG('u', "ignore-output-crc", &flags.ignore_crc, FLAG_CRC_OUTPUT, "Ignores output file crc.", 0, NULL),
+        ARGC_OPT_FLAG('i', "ignore-crc", &flags.ignore_crc, FLAG_CRC_ALL, "Ignores all crc checks.", 0, NULL),
+
+        ARGC_OPT_FLAG('f', "strict-patch-crc", &flags.strict_crc, FLAG_CRC_PATCH, "Aborts on patch crc mismatch.", 0, NULL),
+        ARGC_OPT_FLAG('g', "strict-input-crc", &flags.strict_crc, FLAG_CRC_INPUT, "Aborts on input crc mismatch.", 0, NULL),
+        ARGC_OPT_FLAG('j', "strict-output-crc", &flags.strict_crc, FLAG_CRC_OUTPUT, "Aborts on output crc mismatch (Not really useful).", 0, NULL),
+        ARGC_OPT_FLAG('k', "strict-crc", &flags.strict_crc, FLAG_CRC_ALL, "Ignores all crc checks.", 0, NULL),
         ARGC_OPT_END(),
     };
 
@@ -110,7 +119,6 @@ static int patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
     c.fn.patch = pfn;
     c.fn.input = ifn;
     c.fn.output = ofn;
-    c.error = NULL;
 
     c.patch = mmap_file_new(pfn, 1);
     c.flags = flags;
@@ -134,17 +142,16 @@ static int patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
         switch (return_code)
         {
         case 0:
-            gible_error("%s successfully patched.", (*format)->name);
+            gible_msg("%s successfully patched.", (*format)->name);
             break;
         case -1:
-            if (c.error) gible_error(c.error);
             break;
         default:
             gible_error(general_errors[return_code]);
             break;
         }
 
-        return return_code != 0;
+        return return_code != PATCH_RET_SUCCESS;
     }
 
     gible_error("Unsupported Patch Type.");

@@ -1,7 +1,7 @@
 TOOLCHAIN 		?= 
 BUILD_SUFFIX 	?= 
 
-ifeq (windows, $(MAKECMDGOALS))
+ifeq (windows, $(findstring windows, $(MAKECMDGOALS)))
 TOOLCHAIN		:= x86_64-w64-mingw32-
 BUILD_SUFFIX	:= -windows
 endif
@@ -31,5 +31,5 @@ all: $(DEP_PATHS) $(OBJ_PATHS)
 -include $(DEP_NAMES)
 
 clean:
-	rm -rf $(OBJ_DIR)
+	rm -rf $(OBJ_DIR) $(OBJ_DIR)*
 	rm -f gible

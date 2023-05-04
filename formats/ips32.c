@@ -5,15 +5,6 @@
 #include "../format.h"
 #include "../filemap.h"
 
-enum ips32_error
-{
-    IPS32_SUCCESS = 0,
-    IPS32_INVALID_HEADER,
-    IPS32_TOO_SMALL,
-    IPS32_NO_FOOTER,
-    IPS32_ERROR_COUNT
-};
-
 static int ips32_patch(patch_context_t *);
 const patch_format_t ips32_format = { "IPS32", "IPS32", 5, ips32_patch };
 
@@ -25,7 +16,7 @@ static int ips32_patch(patch_context_t *c)
         return PATCH_RET_INVALID_PATCH;
 
     if (c->patch.size < 8)
-        return PATCH_ERROR(c, "Patch file is too small to be an IPS32 file.");
+        return PATCH_ERROR("Patch file is too small to be an IPS32 file.");
 
     patch = c->patch.handle;
     patchend = patch + c->patch.size;
@@ -36,7 +27,7 @@ static int ips32_patch(patch_context_t *c)
 
     // Never gonna get called, unless the function gets used directly.
     if (patch8() != 'I' || patch8() != 'P' || patch8() != 'S' || patch8() != '3' || patch8() != '2')
-        return PATCH_ERROR(c, "Invalid header for an IPS32 file.");
+        return PATCH_ERROR("Invalid header for an IPS32 file.");
 
     c->input = mmap_file_new(c->fn.input, 1);
     mmap_open(&c->input);
@@ -81,7 +72,7 @@ static int ips32_patch(patch_context_t *c)
     }
 
     if (patch8() != 'E' || patch8() != 'E' || patch8() != 'O' || patch8() != 'F')
-        return PATCH_ERROR(c, "EEOF footer not found.");
+        return PATCH_ERROR("EEOF footer not found.");
 
 #undef patch8
 #undef patch16

@@ -17,7 +17,7 @@
 #define FLAG_CRC_OUTPUT          (1 << 2)
 #define FLAG_CRC_ALL             (FLAG_CRC_PATCH | FLAG_CRC_INPUT | FLAG_CRC_OUTPUT)
 
-#define PATCH_ERROR(c, err)      (set_patch_error(c, err), PATCH_RET_FAILURE)
+#define PATCH_ERROR(...) (gible_error(__VA_ARGS__), PATCH_RET_FAILURE)
 
 // By default, checksums are checked at the end.
 typedef struct patch_flags
@@ -25,8 +25,8 @@ typedef struct patch_flags
     // CRC byte:
     // xyz0 0000
     // x - patch, y - input, z - output
-    unsigned char strict_crc:3; // Aborts patching on checksum mismatch
-    unsigned char ignore_crc:3; // Don't even bother with checksum
+    unsigned char strict_crc; // Aborts patching on checksum mismatch
+    unsigned char ignore_crc; // Don't even bother with checksum
 } patch_flags_t;
 
 typedef struct patch_context
@@ -41,7 +41,6 @@ typedef struct patch_context
     mmap_file_t input;
     mmap_file_t output;
     patch_flags_t *flags;
-    const char *error;
 } patch_context_t;
 
 typedef int (*patch_main)(patch_context_t *);
@@ -58,7 +57,5 @@ extern const patch_format_t ips_format;
 extern const patch_format_t ips32_format;
 extern const patch_format_t bps_format;
 extern const patch_format_t ups_format;
-
-int set_patch_error(patch_context_t *c, const char *err);
 
 #endif /* FORMAT_H */

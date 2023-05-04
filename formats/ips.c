@@ -16,7 +16,7 @@ static int ips_patch(patch_context_t *c)
         return PATCH_RET_INVALID_PATCH;
 
     if (c->patch.size < 8)
-        return PATCH_ERROR(c, "Patch file is too small to be an IPS file.");
+        return PATCH_ERROR("Patch file is too small to be an IPS file.");
 
     patch = c->patch.handle;
     patchend = patch + c->patch.size;
@@ -27,7 +27,7 @@ static int ips_patch(patch_context_t *c)
 
     // Never gonna get called, unless the function gets used directly.
     if (patch8() != 'P' || patch8() != 'A' || patch8() != 'T' || patch8() != 'C' || patch8() != 'H')
-        return PATCH_ERROR(c, "Invalid header for an IPS file.");
+        return PATCH_ERROR("Invalid header for an IPS file.");
 
     c->input = mmap_file_new(c->fn.input, 1);
     mmap_open(&c->input);
@@ -72,7 +72,7 @@ static int ips_patch(patch_context_t *c)
     }
 
     if (patch8() != 'E' || patch8() != 'O' || patch8() != 'F')
-        return PATCH_ERROR(c, "EOF footer not found.");
+        return PATCH_ERROR("EOF footer not found.");
 
 #undef patch8
 #undef patch16
