@@ -19,9 +19,6 @@ AlignConsecutiveMacros:
 AlignConsecutiveBitFields: false
 BitFieldColonSpacing: None
 AlignOperands: AlignAfterOperator
-IncludeBlocks: Merge
-IncludeCategories:
-  - Regex: '^".+'
-    Priority: 2
 SortIncludes: true
 AlignArrayOfStructures: Right
+AlignEscapedNewlines: DontAlign

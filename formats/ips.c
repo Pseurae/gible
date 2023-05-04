@@ -1,11 +1,10 @@
-#include <stdio.h>
+#include "../filemap.h"
+#include "../format.h"
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 
-#include "../format.h"
-#include "../filemap.h"
-
-static int ips_patch(patch_context_t *);
+static int ips_patch(patch_context_t *c);
 const patch_format_t ips_format = { "IPS", "PATCH", 5, ips_patch };
 
 static int ips_patch(patch_context_t *c)
@@ -21,13 +20,16 @@ static int ips_patch(patch_context_t *c)
     patch = c->patch.handle;
     patchend = patch + c->patch.size;
 
-#define patch8() ((patch < patchend) ? *(patch++) : 0)
+#define patch8()  ((patch < patchend) ? *(patch++) : 0)
 #define patch16() ((patch + 2 < patchend) ? (patch += 2, (patch[-2] << 8 | patch[-1])) : 0)
 #define patch24() ((patch + 3 < patchend) ? (patch += 3, (patch[-3] << 16 | patch[-2] << 8 | patch[-1])) : 0)
 
     // Never gonna get called, unless the function gets used directly.
     if (patch8() != 'P' || patch8() != 'A' || patch8() != 'T' || patch8() != 'C' || patch8() != 'H')
         return PATCH_ERROR("Invalid header for an IPS file.");
+
+    if (patchend[-3] != 'E' || patchend[-2] != 'O' || patchend[-1] != 'F')
+        return PATCH_ERROR("EOF footer not found.");
 
     c->input = mmap_file_new(c->fn.input, 1);
     mmap_open(&c->input);
@@ -71,13 +73,9 @@ static int ips_patch(patch_context_t *c)
         }
     }
 
-    if (patch8() != 'E' || patch8() != 'O' || patch8() != 'F')
-        return PATCH_ERROR("EOF footer not found.");
-
 #undef patch8
 #undef patch16
 #undef patch24
 
     return PATCH_RET_SUCCESS;
 }
-

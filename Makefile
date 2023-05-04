@@ -32,4 +32,4 @@ all: $(DEP_PATHS) $(OBJ_PATHS)
 
 clean:
 	rm -rf $(OBJ_DIR) $(OBJ_DIR)*
-	rm -f gible
+	rm -f gible gible.exe

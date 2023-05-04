@@ -33,9 +33,9 @@ typedef struct patch_context
 {
     struct fn
     {
-        char *patch;
-        char *input;
-        char *output;
+        const char *patch;
+        const char *input;
+        const char *output;
     } fn;
     mmap_file_t patch;
     mmap_file_t input;

@@ -8,7 +8,7 @@ Gible supports patching of IPS, IPS32, UPS and BPS files.  Patch creation and ot
 ## Building
 
 ### Windows
-Install mingw-w64 and run `make windows` on WSL. Same can be done in Mac or Linux on obtaining a working executable for Windows.
+Install mingw-w64 and run `make windows` on WSL. Same can be done in Mac or Linux for obtaining a working executable for Windows.
 
 ### Linux & Mac
 Just run `make` and gible should be compiled.

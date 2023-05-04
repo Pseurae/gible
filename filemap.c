@@ -1,16 +1,15 @@
 /* Thin wrapper around mmap and MapViewOfFile. */
 
+#include "filemap.h"
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
-
-#include "filemap.h"
 
 static void mmap_file_init(mmap_file_t *f);
 static int mmap_create_internal(mmap_file_t *f);
 static int mmap_open_internal(mmap_file_t *f);
 
-mmap_file_t mmap_file_new(char *fn, int readonly)
+mmap_file_t mmap_file_new(const char *fn, int readonly)
 {
     mmap_file_t f;
     mmap_file_init(&f);
@@ -21,7 +20,7 @@ mmap_file_t mmap_file_new(char *fn, int readonly)
 
 int mmap_create(mmap_file_t *f, size_t size)
 {
-    if (f->status) 
+    if (f->status)
         return 0;
 
     if (f->readonly)
@@ -34,7 +33,7 @@ int mmap_create(mmap_file_t *f, size_t size)
 
 int mmap_open(mmap_file_t *f)
 {
-    if (f->status) 
+    if (f->status)
         return 0;
 
     return mmap_open_internal(f);
@@ -59,21 +58,15 @@ int mmap_create_internal(mmap_file_t *f)
     int mapping_attr = PAGE_READWRITE;
     int map_access = FILE_MAP_ALL_ACCESS;
 
-    f->filehandle = CreateFile(
-        f->fn, file_access, share_flag, 
-        NULL, creation_disposition, 0, NULL
-    );
+    f->filehandle = CreateFile(f->fn, file_access, share_flag, NULL, creation_disposition, 0, NULL);
 
-    if (f->filehandle == INVALID_HANDLE_VALUE) 
+    if (f->filehandle == INVALID_HANDLE_VALUE)
     {
         f->status = -1;
         return 0;
     }
 
-    f->maphandle = CreateFileMappingW(
-        f->filehandle, NULL, mapping_attr, 
-        0, f->size, NULL
-    );
+    f->maphandle = CreateFileMappingW(f->filehandle, NULL, mapping_attr, 0, f->size, NULL);
 
     if (f->maphandle == INVALID_HANDLE_VALUE)
     {
@@ -94,29 +87,26 @@ int mmap_open_internal(mmap_file_t *f)
     int mapping_attr = f->readonly ? PAGE_READONLY : PAGE_READWRITE;
     int map_access = f->readonly ? FILE_MAP_READ : FILE_MAP_ALL_ACCESS;
 
-    f->filehandle = CreateFile(
-        f->fn, file_access, share_flag, NULL, 
-        creation_disposition, 0, NULL
-    );
+    f->filehandle = CreateFile(f->fn, file_access, share_flag, NULL, creation_disposition, 0, NULL);
 
-    if (f->filehandle == INVALID_HANDLE_VALUE) 
+    if (f->filehandle == INVALID_HANDLE_VALUE)
     {
         f->status = -1;
         return 0;
     }
 
     LARGE_INTEGER i;
-    if (GetFileSizeEx(f->filehandle, &i)) {
+    if (GetFileSizeEx(f->filehandle, &i))
+    {
         f->size = (size_t)i.QuadPart;
-    } else {
+    }
+    else
+    {
         CloseHandle(f->filehandle);
         return 0;
     }
 
-    f->maphandle = CreateFileMappingW(
-        f->filehandle, NULL, mapping_attr, 
-        0, f->size, NULL
-    );
+    f->maphandle = CreateFileMappingW(f->filehandle, NULL, mapping_attr, 0, f->size, NULL);
 
     if (f->maphandle == INVALID_HANDLE_VALUE)
     {
@@ -154,10 +144,10 @@ void mmap_close(mmap_file_t *f)
 #else
 
 #include <fcntl.h>
-#include <unistd.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <unistd.h>
 
 int mmap_create_internal(mmap_file_t *f)
 {

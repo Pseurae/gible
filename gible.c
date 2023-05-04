@@ -7,8 +7,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define HEADER_REGION_LEN 10
-
 static const char *gible_description = "Yet another rom patcher.";
 static const char *gible_usage[] = {
     "<patch> <input> <output> [-tyui] [-fgjk] [-b] [-v]",
@@ -16,23 +14,23 @@ static const char *gible_usage[] = {
 };
 
 static const char *general_errors[] = {
-    [PATCH_RET_SUCCESS] = "Successfully patched.",
+    [PATCH_RET_SUCCESS] = "Successfully patched.", // Not used.
     [PATCH_RET_INVALID_PATCH] = "Cannot open the given patch file.",
     [PATCH_RET_INVALID_INPUT] = "Cannot open the given input file.",
     [PATCH_RET_INVALID_OUTPUT] = "Cannot open the given output file.",
 };
 
 int main(int argc, char *argv[]);
-static int are_filenames_same(char *pfn, char *ifn, char *ofn);
+static int are_filenames_same(const char *pfn, const char *ifn, const char *ofn);
 static int gible_main(int argc, char *argv[]);
-static int patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags);
+static int patch(const char *pfn, const char *ifn, const char *ofn, patch_flags_t *flags);
 
 int main(int argc, char *argv[])
 {
     return gible_main(argc, argv);
 }
 
-static int are_filenames_same(char *pfn, char *ifn, char *ofn)
+static int are_filenames_same(const char *pfn, const char *ifn, const char *ofn)
 {
     if (!strcmp(pfn, ifn))
     {
@@ -61,19 +59,22 @@ static int gible_main(int argc, char *argv[])
     patch_flags_t flags;
     memset(&flags, 0, sizeof(patch_flags_t));
 
+    // clang-format off
+
     argc_option_t options[] = {
         ARGC_OPT_HELP(),
         ARGC_OPT_FLAG('t', "ignore-patch-crc", &flags.ignore_crc, FLAG_CRC_PATCH, "Ignores patch file crc.", 0, NULL),
         ARGC_OPT_FLAG('y', "ignore-input-crc", &flags.ignore_crc, FLAG_CRC_INPUT, "Ignores input file crc.", 0, NULL),
         ARGC_OPT_FLAG('u', "ignore-output-crc", &flags.ignore_crc, FLAG_CRC_OUTPUT, "Ignores output file crc.", 0, NULL),
         ARGC_OPT_FLAG('i', "ignore-crc", &flags.ignore_crc, FLAG_CRC_ALL, "Ignores all crc checks.", 0, NULL),
-
         ARGC_OPT_FLAG('f', "strict-patch-crc", &flags.strict_crc, FLAG_CRC_PATCH, "Aborts on patch crc mismatch.", 0, NULL),
         ARGC_OPT_FLAG('g', "strict-input-crc", &flags.strict_crc, FLAG_CRC_INPUT, "Aborts on input crc mismatch.", 0, NULL),
         ARGC_OPT_FLAG('j', "strict-output-crc", &flags.strict_crc, FLAG_CRC_OUTPUT, "Aborts on output crc mismatch (Not really useful).", 0, NULL),
         ARGC_OPT_FLAG('k', "strict-crc", &flags.strict_crc, FLAG_CRC_ALL, "Ignores all crc checks.", 0, NULL),
         ARGC_OPT_END(),
     };
+
+    // clang-format on
 
     argc_parser_t parser =
         argc_parser_new(*argv, options, ARGC_PARSER_FLAGS_STOP_UNKNOWN | ARGC_PARSER_FLAGS_HELP_ON_UNKNOWN);
@@ -110,9 +111,19 @@ static int gible_main(int argc, char *argv[])
     return patch(pfn, ifn, ofn, &flags);
 }
 
-static const patch_format_t *patch_formats[] = { &ips_format, &ips32_format, &ups_format, &bps_format, NULL };
+// clang-format off
 
-static int patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
+static const patch_format_t *const patch_formats[] = { 
+    &ips_format, 
+    &ips32_format, 
+    &ups_format, 
+    &bps_format, 
+    NULL 
+};
+
+// clang-format on
+
+static int patch(const char *pfn, const char *ifn, const char *ofn, patch_flags_t *flags)
 {
     patch_context_t c;
 
@@ -125,7 +136,10 @@ static int patch(char *pfn, char *ifn, char *ofn, patch_flags_t *flags)
 
     mmap_open(&c.patch);
 
-    for (const patch_format_t **format = patch_formats; *format; format++)
+    if (!c.patch.status)
+        return (gible_error(general_errors[PATCH_RET_INVALID_PATCH]), 1);
+
+    for (const patch_format_t *const *format = patch_formats; *format; format++)
     {
         char *header = (*format)->header;
         unsigned char header_len = (*format)->header_len;

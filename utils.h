@@ -9,6 +9,6 @@
 
 int file_exists(const char *fn);
 size_t readvint(unsigned char **stream);
-unsigned int read32le(unsigned char *ptr);
+unsigned int read32le(const unsigned char *ptr);
 
 #endif /* UTIL_H */

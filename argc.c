@@ -26,80 +26,81 @@ int argc_parser_execute(argc_ctx_t *ctx, argc_option_t *option)
     char *s = NULL;
     errno = 0;
 
-    switch (option->type) {
-        case ARGC_TYPE_STRING:
-            if (ctx->argc > 1)
-            {
-                *(char **)option->value_ptr = *(++ctx->argv);
-                ctx->argc--;
-            }
-            else
-            {
-                return error("%s argument requires an string value.\n", option->lname);
-            }
-            break; 
+    switch (option->type)
+    {
+    case ARGC_TYPE_STRING:
+        if (ctx->argc > 1)
+        {
+            *(char **)option->value_ptr = *(++ctx->argv);
+            ctx->argc--;
+        }
+        else
+        {
+            return error("%s argument requires an string value.\n", option->lname);
+        }
+        break;
 
-        case ARGC_TYPE_FLAG:
-            if (option->flags & ARGC_OPTION_FLAGS_INVERT)
-                *(int *)option->value_ptr &= ~option->params;
-            else
-                *(int *)option->value_ptr |= option->params;
+    case ARGC_TYPE_FLAG:
+        if (option->flags & ARGC_OPTION_FLAGS_INVERT)
+            *(int *)option->value_ptr &= ~option->params;
+        else
+            *(int *)option->value_ptr |= option->params;
 
-            break;
+        break;
 
-        case ARGC_TYPE_BOOLEAN:
-            if (option->flags & ARGC_OPTION_FLAGS_INVERT)
-                *(int *)option->value_ptr = 0;
-            else
-                *(int *)option->value_ptr = 1;
-            break; 
+    case ARGC_TYPE_BOOLEAN:
+        if (option->flags & ARGC_OPTION_FLAGS_INVERT)
+            *(int *)option->value_ptr = 0;
+        else
+            *(int *)option->value_ptr = 1;
+        break;
 
-        case ARGC_TYPE_INTEGER:
-            if (ctx->argc > 1)
-            {
-                *(int *)option->value_ptr = strtol(*(++ctx->argv), &s, 0);
-                ctx->argc--;
-            }
-            else
-            {
-                return error("%s argument requires an integer value.\n", option->lname);
-            }
+    case ARGC_TYPE_INTEGER:
+        if (ctx->argc > 1)
+        {
+            *(int *)option->value_ptr = strtol(*(++ctx->argv), &s, 0);
+            ctx->argc--;
+        }
+        else
+        {
+            return error("%s argument requires an integer value.\n", option->lname);
+        }
 
-            if (errno == ERANGE) 
-                return error("Out of range.\n");
+        if (errno == ERANGE)
+            return error("Out of range.\n");
 
-            // if (errno == EINVAL)
-            if (s[0] != '\0') 
-                return error("Not a number.\n");
+        // if (errno == EINVAL)
+        if (s[0] != '\0')
+            return error("Not a number.\n");
 
-            break; 
+        break;
 
-        case ARGC_TYPE_FLOAT:
-            if (ctx->argc > 1)
-            {
-                *(float *)option->value_ptr = strtof(*(++ctx->argv), &s);
-                ctx->argc--;
-            }
-            else
-            {
-                return error("%s argument requires an float value.\n", option->lname);
-            }
+    case ARGC_TYPE_FLOAT:
+        if (ctx->argc > 1)
+        {
+            *(float *)option->value_ptr = strtof(*(++ctx->argv), &s);
+            ctx->argc--;
+        }
+        else
+        {
+            return error("%s argument requires an float value.\n", option->lname);
+        }
 
-            if (errno == ERANGE) 
-                return error("Out of range.\n");
+        if (errno == ERANGE)
+            return error("Out of range.\n");
 
-            // if (errno == EINVAL)
-            if (s[0] != '\0') 
-                return error("Not a number.\n");
+        // if (errno == EINVAL)
+        if (s[0] != '\0')
+            return error("Not a number.\n");
 
-            break; 
+        break;
 
-        case ARGC_TYPE_CALLBACK:
-            option->callback(ctx->par, option);
-            break;
+    case ARGC_TYPE_CALLBACK:
+        option->callback(ctx->par, option);
+        break;
 
-        default:
-            return -1;
+    default:
+        return -1;
     }
 
 #undef error
@@ -110,7 +111,7 @@ int argc_parser_execute(argc_ctx_t *ctx, argc_option_t *option)
 // Returns 0 on no match, 1 on success, -1 on failure
 int argc_parser_short_opt(argc_ctx_t *ctx, argc_option_t *options)
 {
-    for (;options->type != ARGC_TYPE_END; options++)
+    for (; options->type != ARGC_TYPE_END; options++)
         if (ctx->curropt[0] == options->sname)
             return argc_parser_execute(ctx, options);
     return 0;
@@ -118,8 +119,8 @@ int argc_parser_short_opt(argc_ctx_t *ctx, argc_option_t *options)
 
 int argc_parser_long_opt(argc_ctx_t *ctx, argc_option_t *options)
 {
-    for (;options->type != ARGC_TYPE_END; options++)
-        if (!strcmp(ctx->curropt, options->lname)) 
+    for (; options->type != ARGC_TYPE_END; options++)
+        if (!strcmp(ctx->curropt, options->lname))
             return argc_parser_execute(ctx, options);
 
     return 0;
@@ -145,7 +146,8 @@ int argc_parser_print_options_description(argc_parser_t *par)
         fprintf(stderr, "options:\n");
         argc_option_t *options = par->options;
 
-        for (;options->type != ARGC_TYPE_END; options++) {
+        for (; options->type != ARGC_TYPE_END; options++)
+        {
             fputc('\n', stderr);
             fprintf(stderr, "-%c, --%s\n\t%s\n", options->sname, options->lname, options->desc);
         }
@@ -164,9 +166,11 @@ int argc_parser_print_description(argc_parser_t *par)
 int argc_parser_print_help(argc_parser_t *par)
 {
     argc_parser_print_description(par);
-    if (par->usage) fputc('\n', stderr);
+    if (par->usage)
+        fputc('\n', stderr);
     argc_parser_print_usage(par);
-    if (par->options) fputc('\n', stderr);
+    if (par->options)
+        fputc('\n', stderr);
     argc_parser_print_options_description(par);
     return 1;
 }
@@ -192,7 +196,7 @@ int argc_parser_parse(argc_parser_t *par, int argc, char **argv)
     ctx.argv = argv;
     ctx.par = par;
 
-    for (;ctx.argc; ctx.argc--, ctx.argv++)
+    for (; ctx.argc; ctx.argc--, ctx.argv++)
     {
         char *arg = *ctx.argv;
         ctx.curropt = NULL;
@@ -209,20 +213,20 @@ int argc_parser_parse(argc_parser_t *par, int argc, char **argv)
         if (arg[1] != '-') // Short hand
         {
             ctx.curropt = arg + 1;
-            if (!argc_parser_short_opt(&ctx, par->options)) 
+            if (!argc_parser_short_opt(&ctx, par->options))
                 goto unknown_opt;
         }
 
         if (arg[2]) // Long hand
         {
             ctx.curropt = arg + 2;
-            if (!argc_parser_long_opt(&ctx, par->options)) 
+            if (!argc_parser_long_opt(&ctx, par->options))
                 goto unknown_opt;
         }
 
         continue;
 
-unknown_opt:
+    unknown_opt:
         if (ctx.curropt)
             fprintf(stderr, "%s: illegal option -- %s.\n", par->execname, ctx.curropt);
         else
@@ -237,4 +241,3 @@ unknown_opt:
 
     return 1;
 }
-
