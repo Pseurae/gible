@@ -13,7 +13,7 @@ typedef struct mmap_file
     const char *fn;
     int readonly;
     int status;
-    size_t size;
+    unsigned long size;
     unsigned char *handle;
 #if defined(_WIN32)
     HANDLE filehandle;
@@ -24,7 +24,7 @@ typedef struct mmap_file
 } mmap_file_t;
 
 mmap_file_t mmap_file_new(const char *fn, int readonly);
-int mmap_create(mmap_file_t *f, size_t size);
+int mmap_create(mmap_file_t *f, unsigned long size);
 int mmap_open(mmap_file_t *f);
 void mmap_close(mmap_file_t *f);
 

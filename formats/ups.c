@@ -57,8 +57,8 @@ static int ups_patch(patch_context_t *c)
     if (patch8() != 'U' || patch8() != 'P' || patch8() != 'S' || patch8() != '1')
         return PATCH_ERROR("Invalid header for an UPS file.");
 
-    size_t input_size = readvint(&patch);
-    size_t output_size = readvint(&patch);
+    unsigned long input_size = readvint(&patch);
+    unsigned long output_size = readvint(&patch);
 
     c->input = mmap_file_new(c->fn.input, 1);
     mmap_open(&c->input);
@@ -91,7 +91,7 @@ static int ups_patch(patch_context_t *c)
 
     while (patch < patchcrc)
     {
-        size_t offset = readvint(&patch);
+        unsigned long offset = readvint(&patch);
         while (offset--)
             writeout8(input8());
 

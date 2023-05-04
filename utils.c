@@ -22,9 +22,9 @@ inline unsigned int read32le(const unsigned char *ptr)
     return ptr[0] | ptr[1] << 8 | ptr[2] << 16 | ptr[3] << 24;
 }
 
-inline size_t readvint(unsigned char **stream)
+inline unsigned long readvint(unsigned char **stream)
 {
-    size_t result = 0, shift = 0;
+    unsigned long result = 0, shift = 0;
 
     while (1)
     {

@@ -18,7 +18,7 @@ mmap_file_t mmap_file_new(const char *fn, int readonly)
     return f;
 }
 
-int mmap_create(mmap_file_t *f, size_t size)
+int mmap_create(mmap_file_t *f, unsigned long size)
 {
     if (f->status)
         return 0;
@@ -98,7 +98,7 @@ int mmap_open_internal(mmap_file_t *f)
     LARGE_INTEGER i;
     if (GetFileSizeEx(f->filehandle, &i))
     {
-        f->size = (size_t)i.QuadPart;
+        f->size = (unsigned long)i.QuadPart;
     }
     else
     {

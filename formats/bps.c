@@ -65,8 +65,8 @@ static int bps_patch(patch_context_t *c)
     if (patch8() != 'B' || patch8() != 'P' || patch8() != 'S' || patch8() != '1')
         return PATCH_ERROR("Invalid header for a BPS file.");
 
-    size_t input_size = readvint(&patch);
-    size_t output_size = readvint(&patch);
+    unsigned long input_size = readvint(&patch);
+    unsigned long output_size = readvint(&patch);
 
     c->input = mmap_file_new(c->fn.input, 1);
     mmap_open(&c->input);
@@ -95,16 +95,16 @@ static int bps_patch(patch_context_t *c)
     output = c->output.handle;
     outputstart = c->output.handle;
 
-    size_t metadata_size = readvint(&patch);
+    unsigned long metadata_size = readvint(&patch);
     patch += metadata_size;
 
-    size_t output_off = 0;
-    size_t source_rel_off = 0;
-    size_t target_rel_off = 0;
+    unsigned long output_off = 0;
+    unsigned long source_rel_off = 0;
+    unsigned long target_rel_off = 0;
 
     while (patch < patchcrc)
     {
-        size_t data = readvint(&patch);
+        unsigned long data = readvint(&patch);
         uint64_t action = data & 3;
         uint64_t length = (data >> 2) + 1;
 

@@ -12,7 +12,7 @@ static const unsigned int crc_halfbyte_lookup16[16] =
 
 // clang-format on
 
-unsigned int crc32(const void *data, unsigned long long length, unsigned int prev)
+unsigned int crc32(const void *data, unsigned long length, unsigned int prev)
 {
     unsigned int crc = ~prev;
     const unsigned char *current = (const unsigned char *)data;
