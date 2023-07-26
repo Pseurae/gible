@@ -106,7 +106,7 @@ static void ips32_create_write_block(bytearray_t *a, unsigned char *patched, uns
     if (address == EEOF_MARKER)
         (address--, size++);
 
-    bytearray_push(a, addressBytes[4]);
+    bytearray_push(a, addressBytes[3]);
     bytearray_push(a, addressBytes[2]);
     bytearray_push(a, addressBytes[1]);
     bytearray_push(a, addressBytes[0]);

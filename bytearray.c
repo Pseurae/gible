@@ -64,7 +64,7 @@ void bytearray_push_vle(bytearray_t *a, unsigned long value)
 {
     while (1)
     {
-        uint64_t x = value & 0x7f;
+        unsigned long x = value & 0x7f;
 
         value >>= 7;
         if (value == 0)
