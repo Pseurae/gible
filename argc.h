@@ -11,40 +11,41 @@
 #define ARGC_PARSER_FLAGS_STOP_UNKNOWN    (1 << 0)
 #define ARGC_PARSER_FLAGS_HELP_ON_UNKNOWN (1 << 1)
 #define ARGC_PARSER_FLAGS_NO_POSITIONAL   (1 << 2)
+#define ARGC_PARSER_FLAGS_IGNORE_UNKNOWN  (1 << 3)
 
-#define ARGC_OPT_STRING(...)                                                                                           \
-    {                                                                                                                  \
-        ARGC_TYPE_STRING, __VA_ARGS__                                                                                  \
+#define ARGC_OPT_STRING(...) \
+    { \
+        ARGC_TYPE_STRING, __VA_ARGS__ \
     }
 
-#define ARGC_OPT_FLAG(...)                                                                                             \
-    {                                                                                                                  \
-        ARGC_TYPE_FLAG, __VA_ARGS__                                                                                    \
+#define ARGC_OPT_FLAG(...) \
+    { \
+        ARGC_TYPE_FLAG, __VA_ARGS__ \
     }
 
-#define ARGC_OPT_BOOLEAN(...)                                                                                          \
-    {                                                                                                                  \
-        ARGC_TYPE_BOOLEAN, __VA_ARGS__                                                                                 \
+#define ARGC_OPT_BOOLEAN(...) \
+    { \
+        ARGC_TYPE_BOOLEAN, __VA_ARGS__ \
     }
 
-#define ARGC_OPT_INTEGER(...)                                                                                          \
-    {                                                                                                                  \
-        ARGC_TYPE_INTEGER, __VA_ARGS__                                                                                 \
+#define ARGC_OPT_INTEGER(...) \
+    { \
+        ARGC_TYPE_INTEGER, __VA_ARGS__ \
     }
 
-#define ARGC_OPT_FLOAT(...)                                                                                            \
-    {                                                                                                                  \
-        ARGC_TYPE_FLOAT, __VA_ARGS__                                                                                   \
+#define ARGC_OPT_FLOAT(...) \
+    { \
+        ARGC_TYPE_FLOAT, __VA_ARGS__ \
     }
 
-#define ARGC_OPT_END()                                                                                                 \
-    {                                                                                                                  \
-        ARGC_TYPE_END, 0, NULL, NULL, 0, NULL, 0, NULL                                                                 \
+#define ARGC_OPT_END() \
+    { \
+        ARGC_TYPE_END, 0, NULL, NULL, 0, NULL, 0, NULL \
     }
 
-#define ARGC_OPT_HELP()                                                                                                \
-    {                                                                                                                  \
-        ARGC_TYPE_CALLBACK, 'h', "help", NULL, 0, "Displays this message.", 0, argc_parser_help_callback               \
+#define ARGC_OPT_HELP() \
+    { \
+        ARGC_TYPE_CALLBACK, 'h', "help", NULL, 0, "Displays this message.", 0, argc_parser_help_callback \
     }
 
 enum argc_type
@@ -66,7 +67,7 @@ typedef struct argc_option argc_option_t;
 typedef struct argc_parser argc_parser_t;
 typedef struct argc_ctx argc_ctx_t;
 
-typedef void (*argc_option_callback)(argc_parser_t *, argc_option_t *);
+typedef void (*argc_option_callback)(argc_parser_t *, const argc_option_t *);
 
 struct argc_option
 {
@@ -86,7 +87,7 @@ struct argc_option
 struct argc_parser
 {
     const char *execname;
-    struct argc_option *options;
+    const struct argc_option *options;
     char **positional;
     int pcount;
     const char *desc;
@@ -103,16 +104,16 @@ struct argc_ctx
     struct argc_parser *par;
 };
 
-argc_parser_t argc_parser_new(const char *execname, argc_option_t *options, int flags);
+argc_parser_t argc_parser_new(const char *execname, const argc_option_t *options, int flags);
 void argc_parser_set_messages(argc_parser_t *par, const char *desc, const char **usage);
-int argc_parser_execute(argc_ctx_t *ctx, argc_option_t *option);
-int argc_parser_short_opt(argc_ctx_t *ctx, argc_option_t *options);
-int argc_parser_long_opt(argc_ctx_t *ctx, argc_option_t *options);
+int argc_parser_execute(argc_ctx_t *ctx, const argc_option_t *option);
+int argc_parser_short_opt(argc_ctx_t *ctx, const argc_option_t *options);
+int argc_parser_long_opt(argc_ctx_t *ctx, const argc_option_t *options);
 int argc_parser_print_usage(argc_parser_t *par);
 int argc_parser_print_options_description(argc_parser_t *par);
 int argc_parser_print_description(argc_parser_t *par);
 int argc_parser_print_help(argc_parser_t *par);
-void argc_parser_help_callback(argc_parser_t *par, argc_option_t *option);
+void argc_parser_help_callback(argc_parser_t *par, const argc_option_t *option);
 int argc_parser_parse(argc_parser_t *par, int argc, char **argv);
 
 #endif /* ARGC_LIB_H */

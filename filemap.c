@@ -5,20 +5,20 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static void mmap_file_init(mmap_file_t *f);
-static int mmap_create_internal(mmap_file_t *f);
-static int mmap_open_internal(mmap_file_t *f);
+static void filemap_init(filemap_t *f);
+static int filemap_create_internal(filemap_t *f);
+static int filemap_open_internal(filemap_t *f);
 
-mmap_file_t mmap_file_new(const char *fn, int readonly)
+filemap_t filemap_new(const char *fn, int readonly)
 {
-    mmap_file_t f;
-    mmap_file_init(&f);
+    filemap_t f;
+    filemap_init(&f);
     f.fn = fn;
     f.readonly = readonly;
     return f;
 }
 
-int mmap_create(mmap_file_t *f, unsigned long size)
+int filemap_create(filemap_t *f, unsigned long size)
 {
     if (f->status)
         return 0;
@@ -28,18 +28,18 @@ int mmap_create(mmap_file_t *f, unsigned long size)
 
     f->size = size;
 
-    return mmap_create_internal(f);
+    return filemap_create_internal(f);
 }
 
-int mmap_open(mmap_file_t *f)
+int filemap_open(filemap_t *f)
 {
     if (f->status)
         return 0;
 
-    return mmap_open_internal(f);
+    return filemap_open_internal(f);
 }
 
-static void mmap_file_init(mmap_file_t *f)
+static void filemap_init(filemap_t *f)
 {
     f->handle = NULL;
     f->status = 0;
@@ -51,7 +51,7 @@ static void mmap_file_init(mmap_file_t *f)
 
 static const int share_flag = FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE;
 
-int mmap_create_internal(mmap_file_t *f)
+int filemap_create_internal(filemap_t *f)
 {
     int file_access = GENERIC_READ | GENERIC_WRITE;
     int creation_disposition = CREATE_ALWAYS;
@@ -62,7 +62,7 @@ int mmap_create_internal(mmap_file_t *f)
 
     if (f->filehandle == INVALID_HANDLE_VALUE)
     {
-        f->status = -1;
+        f->status = 0;
         return 0;
     }
 
@@ -71,7 +71,7 @@ int mmap_create_internal(mmap_file_t *f)
     if (f->maphandle == INVALID_HANDLE_VALUE)
     {
         CloseHandle(f->filehandle);
-        f->status = -1;
+        f->status = 0;
         return 0;
     }
 
@@ -80,7 +80,7 @@ int mmap_create_internal(mmap_file_t *f)
     return 1;
 };
 
-int mmap_open_internal(mmap_file_t *f)
+int filemap_open_internal(filemap_t *f)
 {
     int file_access = GENERIC_READ | (!f->readonly ? GENERIC_WRITE : 0);
     int creation_disposition = OPEN_EXISTING;
@@ -91,7 +91,7 @@ int mmap_open_internal(mmap_file_t *f)
 
     if (f->filehandle == INVALID_HANDLE_VALUE)
     {
-        f->status = -1;
+        f->status = 0;
         return 0;
     }
 
@@ -111,7 +111,7 @@ int mmap_open_internal(mmap_file_t *f)
     if (f->maphandle == INVALID_HANDLE_VALUE)
     {
         CloseHandle(f->filehandle);
-        f->status = -1;
+        f->status = 0;
         return 0;
     }
 
@@ -120,7 +120,7 @@ int mmap_open_internal(mmap_file_t *f)
     return 1;
 };
 
-void mmap_close(mmap_file_t *f)
+void filemap_close(filemap_t *f)
 {
     if (f->handle)
     {
@@ -139,6 +139,8 @@ void mmap_close(mmap_file_t *f)
         CloseHandle(f->filehandle);
         f->filehandle = INVALID_HANDLE_VALUE;
     }
+
+    f->status = 0;
 };
 
 #else
@@ -149,16 +151,16 @@ void mmap_close(mmap_file_t *f)
 #include <sys/types.h>
 #include <unistd.h>
 
-int mmap_create_internal(mmap_file_t *f)
+int filemap_create_internal(filemap_t *f)
 {
     int open_flags = O_RDWR | O_CREAT | O_TRUNC;
     int protect_flags = PROT_READ | PROT_WRITE;
 
     // creat doesn't work here.
     f->fd = open(f->fn, open_flags, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
-    if (f->fd < 0)
+    if (f->fd == -1)
     {
-        f->status = -1;
+        f->status = 0;
         return 0;
     }
 
@@ -170,7 +172,7 @@ int mmap_create_internal(mmap_file_t *f)
         f->handle = 0;
         close(f->fd);
         f->fd = -1;
-        f->status = -1;
+        f->status = 0;
         return 0;
     }
 
@@ -178,15 +180,17 @@ int mmap_create_internal(mmap_file_t *f)
     return 1;
 }
 
-int mmap_open_internal(mmap_file_t *f)
+#include "log.h"
+
+int filemap_open_internal(filemap_t *f)
 {
     int open_flags = f->readonly ? O_RDONLY : O_RDWR;
     int protect_flags = PROT_READ | (f->readonly ? 0 : PROT_WRITE);
 
     f->fd = open(f->fn, open_flags, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
-    if (f->fd < 0)
+    if (f->fd == -1)
     {
-        f->status = -1;
+        f->status = 0;
         return 0;
     }
 
@@ -196,12 +200,12 @@ int mmap_open_internal(mmap_file_t *f)
 
     f->handle = (unsigned char *)mmap(0, f->size, protect_flags, MAP_SHARED, f->fd, 0);
 
-    if (f->handle == MAP_FAILED)
+    if ((void *)f->handle == MAP_FAILED)
     {
         f->handle = 0;
         close(f->fd);
         f->fd = -1;
-        f->status = -1;
+        f->status = 0;
         return 0;
     }
 
@@ -209,7 +213,7 @@ int mmap_open_internal(mmap_file_t *f)
     return 1;
 }
 
-void mmap_close(mmap_file_t *f)
+void filemap_close(filemap_t *f)
 {
     if (f->handle)
     {
@@ -222,5 +226,7 @@ void mmap_close(mmap_file_t *f)
         close(f->fd);
         f->fd = -1;
     }
+
+    f->status = 0;
 }
 #endif

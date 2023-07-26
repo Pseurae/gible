@@ -59,6 +59,7 @@ build*/
 output
 output.**
 gible
+tests/
 
 # Patch Files
 *.ips
