@@ -1,5 +1,5 @@
-TOOLCHAIN 		?= 
-BUILD_SUFFIX 	?= 
+TOOLCHAIN 		?=
+BUILD_SUFFIX 	?=
 
 ifeq (windows, $(findstring windows, $(MAKECMDGOALS)))
 TOOLCHAIN		:= x86_64-w64-mingw32-
