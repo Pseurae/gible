@@ -8,11 +8,18 @@
 #include <windows.h>
 #endif
 
+typedef enum filemap_status
+{
+    FILEMAP_NOT_OPENED = -1,
+    FILEMAP_ERROR = 0,
+    FILEMAP_OK = 1
+} filemap_status_t;
+
 typedef struct filemap
 {
+    filemap_status_t status;
     const char *fn;
     unsigned char readonly;
-    unsigned char status;
     unsigned long size;
     unsigned char *handle;
 #if defined(_WIN32)

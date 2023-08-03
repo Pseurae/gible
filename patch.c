@@ -80,15 +80,15 @@ static int patch(const char *pfn, const char *ifn, const char *ofn, patch_flags_
     c.flags = flags;
 
     c.patch = filemap_new(pfn, 1);
+    c.input = filemap_new(ifn, 1);
+
+    filemap_open(&c.input);
     filemap_open(&c.patch);
 
-    c.input = filemap_new(ifn, 1);
-    filemap_open(&c.input);
-
-    if (!c.patch.status)
+    if (c.patch.status == FILEMAP_ERROR)
         return (gible_error(general_errors[APPLY_RET_INVALID_PATCH]), 1);
 
-    if (!c.input.status)
+    if (c.input.status == FILEMAP_ERROR)
         return (gible_error(general_errors[APPLY_RET_INVALID_INPUT]), 1);
 
     for (const patch_format_t *const *format = patch_formats; *format; format++)

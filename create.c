@@ -77,10 +77,10 @@ static int create(const char *pfn, const char *bfn, const char *ofn)
     filemap_open(&c.patched);
     filemap_open(&c.base);
 
-    if (!c.patched.status)
+    if (c.patched.status == FILEMAP_ERROR)
         return (gible_error(general_errors[CREATE_RET_INVALID_PATCHED]), 1);
 
-    if (!c.base.status)
+    if (c.base.status == FILEMAP_ERROR)
         return (gible_error(general_errors[CREATE_RET_INVALID_BASE]), 1);
 
     for (const patch_format_t *const *format = patch_formats; *format; format++)

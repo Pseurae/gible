@@ -20,7 +20,7 @@ filemap_t filemap_new(const char *fn, int readonly)
 
 int filemap_create(filemap_t *f, unsigned long size)
 {
-    if (f->status)
+    if (f->status != FILEMAP_NOT_OPENED)
         return 0;
 
     if (f->readonly)
@@ -33,7 +33,7 @@ int filemap_create(filemap_t *f, unsigned long size)
 
 int filemap_open(filemap_t *f)
 {
-    if (f->status)
+    if (f->status != FILEMAP_NOT_OPENED)
         return 0;
 
     return filemap_open_internal(f);
@@ -42,7 +42,7 @@ int filemap_open(filemap_t *f)
 static void filemap_init(filemap_t *f)
 {
     f->handle = NULL;
-    f->status = 0;
+    f->status = FILEMAP_NOT_OPENED;
 }
 
 #if defined(_WIN32)
@@ -62,7 +62,7 @@ int filemap_create_internal(filemap_t *f)
 
     if (f->filehandle == INVALID_HANDLE_VALUE)
     {
-        f->status = 0;
+        f->status = FILEMAP_ERROR;
         return 0;
     }
 
@@ -71,12 +71,12 @@ int filemap_create_internal(filemap_t *f)
     if (f->maphandle == INVALID_HANDLE_VALUE)
     {
         CloseHandle(f->filehandle);
-        f->status = 0;
+        f->status = FILEMAP_ERROR;
         return 0;
     }
 
     f->handle = (unsigned char *)MapViewOfFile(f->maphandle, map_access, 0, 0, 0);
-    f->status = 1;
+    f->status = FILEMAP_OK;
     return 1;
 };
 
@@ -91,7 +91,7 @@ int filemap_open_internal(filemap_t *f)
 
     if (f->filehandle == INVALID_HANDLE_VALUE)
     {
-        f->status = 0;
+        f->status = FILEMAP_ERROR;
         return 0;
     }
 
@@ -103,6 +103,7 @@ int filemap_open_internal(filemap_t *f)
     else
     {
         CloseHandle(f->filehandle);
+        f->status = FILEMAP_ERROR;
         return 0;
     }
 
@@ -111,12 +112,12 @@ int filemap_open_internal(filemap_t *f)
     if (f->maphandle == INVALID_HANDLE_VALUE)
     {
         CloseHandle(f->filehandle);
-        f->status = 0;
+        f->status = FILEMAP_ERROR;
         return 0;
     }
 
     f->handle = (unsigned char *)MapViewOfFile(f->maphandle, map_access, 0, 0, 0);
-    f->status = 1;
+    f->status = FILEMAP_OK;
     return 1;
 };
 
@@ -140,7 +141,7 @@ void filemap_close(filemap_t *f)
         f->filehandle = INVALID_HANDLE_VALUE;
     }
 
-    f->status = 0;
+    f->status = FILEMAP_NOT_OPENED;
 };
 
 #else
@@ -160,7 +161,7 @@ int filemap_create_internal(filemap_t *f)
     f->fd = open(f->fn, open_flags, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
     if (f->fd == -1)
     {
-        f->status = 0;
+        f->status = FILEMAP_ERROR;
         return 0;
     }
 
@@ -172,11 +173,11 @@ int filemap_create_internal(filemap_t *f)
         f->handle = 0;
         close(f->fd);
         f->fd = -1;
-        f->status = 0;
+        f->status = FILEMAP_ERROR;
         return 0;
     }
 
-    f->status = 1;
+    f->status = FILEMAP_OK;
     return 1;
 }
 
@@ -190,7 +191,7 @@ int filemap_open_internal(filemap_t *f)
     f->fd = open(f->fn, open_flags, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
     if (f->fd == -1)
     {
-        f->status = 0;
+        f->status = FILEMAP_ERROR;
         return 0;
     }
 
@@ -205,11 +206,11 @@ int filemap_open_internal(filemap_t *f)
         f->handle = 0;
         close(f->fd);
         f->fd = -1;
-        f->status = 0;
+        f->status = FILEMAP_ERROR;
         return 0;
     }
 
-    f->status = 1;
+    f->status = FILEMAP_OK;
     return 1;
 }
 
@@ -227,6 +228,6 @@ void filemap_close(filemap_t *f)
         f->fd = -1;
     }
 
-    f->status = 0;
+    f->status = FILEMAP_NOT_OPENED;
 }
 #endif
