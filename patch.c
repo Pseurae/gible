@@ -22,7 +22,6 @@ static int patch(const char *pfn, const char *ifn, const char *ofn, patch_flags_
 
 int gible_patch(const char *execname, int argc, char *argv[])
 {
-
     patch_flags_t flags;
     memset(&flags, 0, sizeof(patch_flags_t));
 

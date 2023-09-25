@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <limits.h>
 
 static int ips_apply(patch_apply_context_t *c);
 static int ips_create_check(patch_create_context_t *c);
@@ -158,7 +159,7 @@ static int ips_create(patch_create_context_t *c)
 
         start = offset;
 
-        for (; patched8(offset) != base8(offset) && offset < patched_size && (offset - start) < __UINT16_MAX__;
+        for (; patched8(offset) != base8(offset) && offset < patched_size && (offset - start) < UINT16_MAX;
              ++offset)
             ;
 
