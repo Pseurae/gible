@@ -1,7 +1,7 @@
-#include "../crc32.h"
-#include "../filemap.h"
-#include "../format.h"
-#include "../utils.h"
+#include "helpers/crc32.h"
+#include "helpers/filemap.h"
+#include "helpers/format.h"
+#include "helpers/utils.h"
 #include <stdint.h>
 #include <stdio.h>
 

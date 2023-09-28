@@ -1,4 +1,4 @@
-#include "bytearray.h"
+#include "helpers/bytearray.h"
 #include <stdlib.h>
 #include <string.h>
 

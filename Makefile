@@ -7,7 +7,7 @@ BUILD_SUFFIX := -windows
 endif
 
 CC     := $(TOOLCHAIN)gcc
-CFLAGS := -I. -O3 -std=c99 -ffunction-sections -Wall -Wextra -MMD
+CFLAGS := -I. -O3 -std=gnu99 -ffunction-sections -Wall -Wextra -MMD
 
 SRC := $(shell find . -name "*.c")
 

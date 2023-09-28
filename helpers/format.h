@@ -1,8 +1,8 @@
-#ifndef FORMAT_H
-#define FORMAT_H
+#ifndef HELPERS_FORMAT_H
+#define HELPERS_FORMAT_H
 
-#include "filemap.h"
-#include "log.h"
+#include "helpers/filemap.h"
+#include "helpers/log.h"
 #include <stdint.h>
 
 // Common return values
@@ -90,4 +90,4 @@ typedef struct patch_format
 
 extern const patch_format_t *const patch_formats[];
 
-#endif /* FORMAT_H */
+#endif /* HELPERS_FORMAT_H */

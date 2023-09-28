@@ -1,5 +1,5 @@
-#ifndef FILEMAP_H
-#define FILEMAP_H
+#ifndef HELPERS_FILEMAP_H
+#define HELPERS_FILEMAP_H
 
 #include <stddef.h>
 #include <stdint.h>
@@ -35,4 +35,4 @@ int filemap_create(filemap_t *f, unsigned long size);
 int filemap_open(filemap_t *f);
 void filemap_close(filemap_t *f);
 
-#endif /* FILEMAP_H */
+#endif /* HELPERS_FILEMAP_H */

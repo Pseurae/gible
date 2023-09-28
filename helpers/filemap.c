@@ -1,6 +1,6 @@
 /* Thin wrapper around mmap and MapViewOfFile. */
 
-#include "filemap.h"
+#include "helpers/filemap.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -165,7 +165,12 @@ int filemap_create_internal(filemap_t *f)
         return 0;
     }
 
-    ftruncate(f->fd, f->size);
+    if (ftruncate(f->fd, f->size) == -1)
+    {
+        f->status = FILEMAP_ERROR;
+        return 0;
+    }
+
     f->handle = (unsigned char *)mmap(0, f->size, protect_flags, MAP_SHARED, f->fd, 0);
 
     if (f->handle == MAP_FAILED)

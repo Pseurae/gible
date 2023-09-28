@@ -10,9 +10,8 @@
 #include <unistd.h>
 #endif
 
-#include "log.h"
-#include "utils.h"
-#include <string.h>
+#include "helpers/utils.h"
+#include <string.h> // strcmp
 
 int file_exists(const char *fn)
 {
@@ -44,23 +43,14 @@ inline unsigned long readvint(unsigned char **stream)
 
 int are_filenames_same(const char *pfn, const char *ifn, const char *ofn)
 {
-    if (!strcmp(pfn, ifn))
-    {
-        gible_error("Error: Patch and input filenames are the same.");
+    if (strcmp(pfn, ifn) == 0)
         return 1;
-    }
 
-    if (!strcmp(ifn, ofn))
-    {
-        gible_error("Error: Input and output filenames are the same.");
-        return 1;
-    }
+    if (strcmp(ifn, ofn) == 0)
+        return 2;
 
-    if (!strcmp(pfn, ofn))
-    {
-        gible_error("Error: Patch and output filenames are the same.");
-        return 1;
-    }
+    if (strcmp(pfn, ofn) == 0)
+        return 3;
 
     return 0;
 }

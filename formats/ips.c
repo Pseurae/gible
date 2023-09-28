@@ -1,6 +1,6 @@
-#include "../bytearray.h"
-#include "../filemap.h"
-#include "../format.h"
+#include "helpers/bytearray.h"
+#include "helpers/filemap.h"
+#include "helpers/format.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>

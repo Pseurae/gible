@@ -1,5 +1,5 @@
-#ifndef BYTEARRAY_H
-#define BYTEARRAY_H
+#ifndef HELPERS_BYTEARRAY_H
+#define HELPERS_BYTEARRAY_H
 
 typedef struct bytearray
 {
@@ -16,4 +16,4 @@ void bytearray_push_string(bytearray_t *a, const char *str);
 void bytearray_push_vle(bytearray_t *a, unsigned long value);
 void bytearray_close(bytearray_t *a);
 
-#endif // BYTEARRAY_H
+#endif // HELPERS_BYTEARRAY_H

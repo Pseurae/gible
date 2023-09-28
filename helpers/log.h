@@ -1,5 +1,5 @@
-#ifndef LOG_H
-#define LOG_H
+#ifndef HELPERS_LOG_H
+#define HELPERS_LOG_H
 
 #include <stdio.h>
 
@@ -18,4 +18,4 @@ enum log_level
 
 void gible_log(int level, const char *fmt, ...);
 
-#endif // LOG_H
+#endif // HELPERS_LOG_H

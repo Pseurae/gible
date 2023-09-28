@@ -1,7 +1,8 @@
-#include "argc.h"
-#include "format.h"
-#include "gible.h"
-#include "utils.h"
+#include "helpers/argc.h"
+#include "helpers/format.h"
+#include "helpers/strings.h"
+#include "helpers/utils.h"
+#include "actions/patch.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -56,8 +57,9 @@ int gible_patch(const char *execname, int argc, char *argv[])
     char *ifn = parser.positional[1];
     char *ofn = parser.positional[2];
 
-    if (are_filenames_same(pfn, ifn, ofn))
-        return 1;
+    int ret;
+    if ((ret = are_filenames_same(pfn, ifn, ofn)))
+        return (gible_error(same_filename_errors[ret - 1]), 1);
 
     if (!file_exists(pfn))
         return (gible_error("Patch file does not exist."), 1);

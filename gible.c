@@ -1,11 +1,11 @@
-#include "gible.h"
-#include "argc.h"
-#include "create.h"
-#include "filemap.h"
-#include "format.h"
-#include "log.h"
-#include "patch.h"
-#include "utils.h"
+#include "helpers/argc.h"
+#include "actions/create.h"
+#include "helpers/filemap.h"
+#include "helpers/format.h"
+#include "helpers/log.h"
+#include "actions/patch.h"
+#include "helpers/utils.h"
+#include "helpers/strings.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -19,7 +19,6 @@ static const struct
     {"create", gible_create},
 };
 
-const char gible_description[] = "Yet another rom patcher.";
 static const char *gible_usage[] = {
     "[patch, create]",
     NULL,

@@ -1,9 +1,10 @@
-#ifndef ARGC_H
-#define ARGC_H
+#ifndef HELPERS_ARGC_H
+#define HELPERS_ARGC_H
 
 #include <errno.h>  // errno, ERANGE
 #include <stdio.h>  // fprintf, stderr, fputc
 #include <stdlib.h> // strtol, strtof
+#include <stdint.h> // uintptr_t
 #include <string.h> // strcmp
 
 #define ARGC_OPTION_FLAGS_INVERT          (1 << 0)
@@ -116,4 +117,4 @@ int argc_parser_print_help(argc_parser_t *par);
 void argc_parser_help_callback(argc_parser_t *par, const argc_option_t *option);
 int argc_parser_parse(argc_parser_t *par, int argc, char **argv);
 
-#endif /* ARGC_LIB_H */
+#endif /* HELPERS_ARGC_H */
