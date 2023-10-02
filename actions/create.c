@@ -13,7 +13,7 @@ static const char *gible_create_usage[] = {
 };
 
 static const char *general_errors[] = {
-    [CREATE_RET_SUCCESS] = "", // Not used.
+    [CREATE_RET_SUCCESS] = NULL, // Not used.
     [CREATE_RET_INVALID_PATCHED] = "Cannot open the given patched file.",
     [CREATE_RET_INVALID_BASE] = "Cannot open the given base file.",
     [CREATE_RET_INVALID_OUTPUT] = "Cannot open the given output file.",
@@ -68,20 +68,17 @@ static int create(const char *pfn, const char *bfn, const char *ofn)
 {
     patch_create_context_t c;
 
-    c.fn.patched = pfn;
-    c.fn.base = bfn;
-    c.fn.output = ofn;
-
-    c.patched = filemap_new(pfn, 1);
-    c.base = filemap_new(bfn, 1);
+    c.patched = filemap_new(pfn, 1, filemap_mmap_api);
+    c.base = filemap_new(bfn, 1, filemap_mmap_api);
+    c.output = filemap_new(ofn, 0, filemap_mmap_api);
 
     filemap_open(&c.patched);
     filemap_open(&c.base);
 
-    if (c.patched.status == FILEMAP_ERROR)
+    if (c.patched.status != FILEMAP_OK)
         return (gible_error(general_errors[CREATE_RET_INVALID_PATCHED]), 1);
 
-    if (c.base.status == FILEMAP_ERROR)
+    if (c.base.status != FILEMAP_OK)
         return (gible_error(general_errors[CREATE_RET_INVALID_BASE]), 1);
 
     for (const patch_format_t *const *format = patch_formats; *format; format++)
@@ -114,6 +111,7 @@ static int create(const char *pfn, const char *bfn, const char *ofn)
     }
 
     filemap_close(&c.patched);
+    filemap_close(&c.base);
     gible_error("Unsupported Patch Type.");
     return 1;
 }

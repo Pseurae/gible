@@ -1,8 +1,8 @@
+#include "actions/patch.h"
 #include "helpers/argc.h"
 #include "helpers/format.h"
 #include "helpers/strings.h"
 #include "helpers/utils.h"
-#include "actions/patch.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,7 +13,7 @@ static const char *gible_patch_usage[] = {
 };
 
 static const char *general_errors[] = {
-    [APPLY_RET_SUCCESS] = "", // Not used
+    [APPLY_RET_SUCCESS] = NULL, // Not used
     [APPLY_RET_INVALID_PATCH] = "Cannot open the given patch file.",
     [APPLY_RET_INVALID_INPUT] = "Cannot open the given input file.",
     [APPLY_RET_INVALID_OUTPUT] = "Cannot open the given output file.",
@@ -74,22 +74,19 @@ static int patch(const char *pfn, const char *ifn, const char *ofn, patch_flags_
 {
     patch_apply_context_t c;
 
-    c.fn.patch = pfn;
-    c.fn.input = ifn;
-    c.fn.output = ofn;
-
     c.flags = flags;
 
-    c.patch = filemap_new(pfn, 1);
-    c.input = filemap_new(ifn, 1);
+    c.patch = filemap_new(pfn, 1, filemap_buffer_api);
+    c.input = filemap_new(ifn, 1, filemap_buffer_api);
+    c.output = filemap_new(ofn, 0, filemap_buffer_api);
 
-    filemap_open(&c.input);
     filemap_open(&c.patch);
+    filemap_open(&c.input);
 
-    if (c.patch.status == FILEMAP_ERROR)
+    if (c.patch.status != FILEMAP_OK)
         return (gible_error(general_errors[APPLY_RET_INVALID_PATCH]), 1);
 
-    if (c.input.status == FILEMAP_ERROR)
+    if (c.input.status != FILEMAP_OK)
         return (gible_error(general_errors[APPLY_RET_INVALID_INPUT]), 1);
 
     for (const patch_format_t *const *format = patch_formats; *format; format++)
@@ -124,6 +121,8 @@ static int patch(const char *pfn, const char *ifn, const char *ofn, patch_flags_
     }
 
     filemap_close(&c.patch);
+    filemap_close(&c.input);
+
     gible_error("Unsupported Patch Type.");
     return 1;
 }

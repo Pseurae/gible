@@ -9,7 +9,21 @@
 
 static int ups_apply(patch_apply_context_t *c);
 static int ups_create(patch_create_context_t *c);
-const patch_format_t ups_format = { "UPS", "UPS1", "ups", ups_apply, ups_create, NULL, NULL };
+
+const patch_format_t ups_format =
+{ 
+    .name = "UPS", 
+    .header = "UPS1", 
+    .ext = "ups", 
+    .apply_main = ups_apply, 
+    .create_main = ups_create, 
+    .apply_check = NULL, 
+    .create_check = NULL 
+};
+
+// -------------------------------------------------
+// Patch Application
+// -------------------------------------------------
 
 static int ups_apply(patch_apply_context_t *c)
 {
@@ -26,8 +40,8 @@ static int ups_apply(patch_apply_context_t *c)
         } \
     }
 
-#define patch8()     (patch < patchend ? *(patch++) : 0)
-#define input8()     (input < inputend ? *(input++) : 0)
+#define patch8() (patch < patchend ? *(patch++) : 0)
+#define input8() (input < inputend ? *(input++) : 0)
 #define writeout8(b) (output < outputend ? *(output++) = b : 0)
 
     patch_flags_t *flags = c->flags;
@@ -74,8 +88,6 @@ static int ups_apply(patch_apply_context_t *c)
         check_crc32(CRC_INPUT, "Input CRCs don't match.");
     }
 
-    c->output = filemap_new(c->fn.output, 0);
-
     if (!filemap_create(&c->output, output_size))
         return APPLY_RET_INVALID_OUTPUT;
 
@@ -114,6 +126,10 @@ static int ups_apply(patch_apply_context_t *c)
     return APPLY_RET_SUCCESS;
 }
 
+// -------------------------------------------------
+// Patch Creation
+// -------------------------------------------------
+
 static int ups_create(patch_create_context_t *c)
 {
     bytearray_t b = bytearray_new();
@@ -127,7 +143,7 @@ static int ups_create(patch_create_context_t *c)
     unsigned long base_size = c->base.size;
 
 #define patched8(i) (patched[i])
-#define base8(i)    (i < base_size ? base[i] : 0)
+#define base8(i) (i < base_size ? base[i] : 0)
 #define write32le(a, i) \
     (bytearray_push(a, i[0]), bytearray_push(a, i[1]), bytearray_push(a, i[2]), bytearray_push(a, i[3]))
 
@@ -166,7 +182,6 @@ static int ups_create(patch_create_context_t *c)
 #undef base8
 #undef write32le
 
-    c->output = filemap_new(c->fn.output, 0);
     filemap_create(&c->output, b.size);
     memcpy(c->output.handle, b.data, b.size);
 

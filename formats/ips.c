@@ -1,17 +1,28 @@
 #include "helpers/bytearray.h"
 #include "helpers/filemap.h"
 #include "helpers/format.h"
-#include <stdint.h>
-#include <stdio.h>
-#include <string.h>
-#include <limits.h>
+#include <string.h> // memcpy
 
 static int ips_apply(patch_apply_context_t *c);
 static int ips_create_check(patch_create_context_t *c);
 static int ips_create(patch_create_context_t *c);
-const patch_format_t ips_format = { "IPS", "PATCH", "ips", ips_apply, ips_create, NULL, ips_create_check };
+
+const patch_format_t ips_format = 
+{ 
+    .name = "IPS", 
+    .header = "PATCH", 
+    .ext = "ips", 
+    .apply_main = ips_apply, 
+    .create_main = ips_create, 
+    .apply_check = NULL, 
+    .create_check = ips_create_check 
+};
 
 #define EOF_MARKER 0x454F46
+
+// -------------------------------------------------
+// Patch Application
+// -------------------------------------------------
 
 static int ips_apply(patch_apply_context_t *c)
 {
@@ -23,7 +34,7 @@ static int ips_apply(patch_apply_context_t *c)
     patch = c->patch.handle;
     patchend = patch + c->patch.size;
 
-#define patch8()  ((patch < patchend) ? *(patch++) : 0)
+#define patch8() ((patch < patchend) ? *(patch++) : 0)
 #define patch16() ((patch + 2 < patchend) ? (patch += 2, (patch[-2] << 8 | patch[-1])) : 0)
 #define patch24() ((patch + 3 < patchend) ? (patch += 3, (patch[-3] << 16 | patch[-2] << 8 | patch[-1])) : 0)
 
@@ -35,8 +46,6 @@ static int ips_apply(patch_apply_context_t *c)
         return APPLY_ERROR("EOF footer not found.");
 
     input = c->input.handle;
-
-    c->output = filemap_new(c->fn.output, 0);
 
     if (!filemap_create(&c->output, c->input.size))
         return APPLY_RET_INVALID_OUTPUT;
@@ -76,6 +85,10 @@ static int ips_apply(patch_apply_context_t *c)
     return APPLY_RET_SUCCESS;
 }
 
+// -------------------------------------------------
+// Patch Creation
+// -------------------------------------------------
+
 static int ips_create_check(patch_create_context_t *c)
 {
     return c->patched.size <= 0x1000000;
@@ -108,7 +121,7 @@ static void ips_create_write_block(bytearray_t *a, unsigned char *patched, unsig
     unsigned char *addressBytes = (unsigned char *)&address;
     unsigned char *sizeBytes = (unsigned char *)&size;
 
-    if (address == EOF_MARKER)
+    if (memcmp(addressBytes, "EOF", 3) == 0)
         (address--, size++);
 
     bytearray_push(a, addressBytes[2]);
@@ -150,7 +163,7 @@ static int ips_create(patch_create_context_t *c)
         return CREATE_ERROR("IPS cannot be used to patch files to size over 16MB.");
 
 #define patched8(i) (patched[i])
-#define base8(i)    (i < base_size ? base[i] : 0)
+#define base8(i) (i < base_size ? base[i] : 0)
 
     for (unsigned int offset = 0, start = 0; offset < patched_size; ++offset)
     {
@@ -159,8 +172,7 @@ static int ips_create(patch_create_context_t *c)
 
         start = offset;
 
-        for (; patched8(offset) != base8(offset) && offset < patched_size && (offset - start) < UINT16_MAX;
-             ++offset)
+        for (; patched8(offset) != base8(offset) && offset < patched_size && (offset - start) < UINT16_MAX; ++offset)
             ;
 
         ips_create_write_block(&b, patched, start, offset);
@@ -171,7 +183,6 @@ static int ips_create(patch_create_context_t *c)
 #undef patched8
 #undef base8
 
-    c->output = filemap_new(c->fn.output, 0);
     filemap_create(&c->output, b.size);
     memcpy(c->output.handle, b.data, b.size);
 

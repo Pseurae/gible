@@ -12,10 +12,10 @@ AllowAllParametersOfDeclarationOnNextLine: false
 BreakBeforeBraces: Allman
 IndentPPDirectives: None
 ColumnLimit: 120
-AlignConsecutiveMacros:
-  Enabled: true
-  AcrossEmptyLines: true
-  AcrossComments: false
+# AlignConsecutiveMacros:
+#   Enabled: true
+#   AcrossEmptyLines: true
+#   AcrossComments: false
 AlignConsecutiveBitFields: false
 BitFieldColonSpacing: None
 AlignOperands: AlignAfterOperator

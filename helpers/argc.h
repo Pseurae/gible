@@ -2,17 +2,17 @@
 #define HELPERS_ARGC_H
 
 #include <errno.h>  // errno, ERANGE
+#include <stdint.h> // uintptr_t
 #include <stdio.h>  // fprintf, stderr, fputc
 #include <stdlib.h> // strtol, strtof
-#include <stdint.h> // uintptr_t
 #include <string.h> // strcmp
 
-#define ARGC_OPTION_FLAGS_INVERT          (1 << 0)
+#define ARGC_OPTION_FLAGS_INVERT (1 << 0)
 
-#define ARGC_PARSER_FLAGS_STOP_UNKNOWN    (1 << 0)
+#define ARGC_PARSER_FLAGS_STOP_UNKNOWN (1 << 0)
 #define ARGC_PARSER_FLAGS_HELP_ON_UNKNOWN (1 << 1)
-#define ARGC_PARSER_FLAGS_NO_POSITIONAL   (1 << 2)
-#define ARGC_PARSER_FLAGS_IGNORE_UNKNOWN  (1 << 3)
+#define ARGC_PARSER_FLAGS_NO_POSITIONAL (1 << 2)
+#define ARGC_PARSER_FLAGS_IGNORE_UNKNOWN (1 << 3)
 
 #define ARGC_OPT_STRING(...) \
     { \

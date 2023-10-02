@@ -15,7 +15,21 @@ enum bps_action
 
 static int bps_apply(patch_apply_context_t *c);
 static int bps_create(patch_create_context_t *c);
-const patch_format_t bps_format = { "BPS", "BPS1", "bps", bps_apply, bps_create, NULL, NULL };
+
+const patch_format_t bps_format = 
+{ 
+    .name = "BPS", 
+    .header = "BPS1", 
+    .ext = "bps", 
+    .apply_main = bps_apply, 
+    .create_main = bps_create, 
+    .apply_check = NULL, 
+    .create_check = NULL 
+};
+
+// -------------------------------------------------
+// Patch Application
+// -------------------------------------------------
 
 static int bps_apply(patch_apply_context_t *c)
 {
@@ -34,7 +48,7 @@ static int bps_apply(patch_apply_context_t *c)
 
 #define patch8() (patch < patchend ? *(patch++) : 0)
 #define input8() (input < inputend ? *(input++) : 0)
-#define sign(b)  ((b & 1 ? -1 : +1) * (b >> 1))
+#define sign(b) ((b & 1 ? -1 : +1) * (b >> 1))
 
     patch_flags_t *flags = c->flags;
 
@@ -77,8 +91,6 @@ static int bps_apply(patch_apply_context_t *c)
         acrc[CRC_INPUT] = crc32(input, input_size, 0);
         check_crc32(CRC_INPUT, "Input CRCs don't match.");
     }
-
-    c->output = filemap_new(c->fn.output, 0);
 
     if (!filemap_create(&c->output, output_size))
         return APPLY_RET_INVALID_OUTPUT;
@@ -149,6 +161,10 @@ static int bps_apply(patch_apply_context_t *c)
 
     return APPLY_RET_SUCCESS;
 }
+
+// -------------------------------------------------
+// Patch Creation
+// -------------------------------------------------
 
 static int bps_create(patch_create_context_t *c)
 {
