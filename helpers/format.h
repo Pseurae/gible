@@ -32,21 +32,27 @@
 #define CREATE_ERROR(...) (gible_error(__VA_ARGS__), CREATE_RET_FAILURE)
 
 // By default, checksums are checked at the end.
-typedef struct patch_flags
+typedef struct apply_flags
 {
     // CRC byte:
     // xyz0 0000
     // x - patch, y - input, z - output
     unsigned char strict_crc; // Aborts patching on checksum mismatch
     unsigned char ignore_crc; // Don't even bother with checksum
-} patch_flags_t;
+    int use_buffer; // Uses malloc and fread instead of mmap
+} apply_flags_t;
+
+typedef struct create_flags
+{
+    int use_buffer;
+} create_flags_t;
 
 typedef struct patch_apply_context
 {
     filemap_t patch;
     filemap_t input;
     filemap_t output;
-    patch_flags_t *flags;
+    const apply_flags_t *flags;
 } patch_apply_context_t;
 
 typedef struct patch_create_context
@@ -54,6 +60,7 @@ typedef struct patch_create_context
     filemap_t patched;
     filemap_t base;
     filemap_t output;
+    const create_flags_t *flags;
 } patch_create_context_t;
 
 typedef int (*apply_main)(patch_apply_context_t *);

@@ -19,12 +19,16 @@ static const char *general_errors[] = {
     [CREATE_RET_INVALID_OUTPUT] = "Cannot open the given output file.",
 };
 
-static int create(const char *pfn, const char *bfn, const char *ofn);
+static int create(const char *pfn, const char *bfn, const char *ofn, const create_flags_t *const flags);
 
 int gible_create(const char *execname, int argc, char *argv[])
 {
+    create_flags_t flags;
+    memset(&flags, 0, sizeof(create_flags_t));
+
     const argc_option_t options[] = {
         ARGC_OPT_HELP(),
+        ARGC_OPT_BOOLEAN('b', "filebuffer", &flags.use_buffer, 0, "Uses a heap allocated buffer instead of memory mapping.", 0, NULL),
         ARGC_OPT_END(),
     };
     argc_parser_t parser =
@@ -51,7 +55,7 @@ int gible_create(const char *execname, int argc, char *argv[])
     if (!file_exists(bfn))
         return (gible_error("Base file does not exist."), 1);
 
-    return create(pfn, bfn, ofn);
+    return create(pfn, bfn, ofn, &flags);
 }
 
 static int check_extension(const char *fname, const char *ext)
@@ -64,13 +68,17 @@ static int check_extension(const char *fname, const char *ext)
     return strcmp(fname + length - ext_len, ext) == 0;
 }
 
-static int create(const char *pfn, const char *bfn, const char *ofn)
+static int create(const char *pfn, const char *bfn, const char *ofn, const create_flags_t *const flags)
 {
     patch_create_context_t c;
 
-    c.patched = filemap_new(pfn, 1, filemap_mmap_api);
-    c.base = filemap_new(bfn, 1, filemap_mmap_api);
-    c.output = filemap_new(ofn, 0, filemap_mmap_api);
+    const filemap_api_t *fmap_api = flags->use_buffer ? filemap_buffer_api : filemap_mmap_api;
+
+    c.flags = flags;
+
+    c.patched = filemap_new(pfn, 1, fmap_api);
+    c.base = filemap_new(bfn, 1, fmap_api);
+    c.output = filemap_new(ofn, 0, fmap_api);
 
     filemap_open(&c.patched);
     filemap_open(&c.base);

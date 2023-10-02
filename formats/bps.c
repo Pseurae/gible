@@ -50,7 +50,7 @@ static int bps_apply(patch_apply_context_t *c)
 #define input8() (input < inputend ? *(input++) : 0)
 #define sign(b) ((b & 1 ? -1 : +1) * (b >> 1))
 
-    patch_flags_t *flags = c->flags;
+    const apply_flags_t *flags = c->flags;
 
     unsigned char *patch, *patchstart, *patchend, *patchcrc;
     unsigned char *input;

@@ -19,12 +19,12 @@ static const char *general_errors[] = {
     [APPLY_RET_INVALID_OUTPUT] = "Cannot open the given output file.",
 };
 
-static int patch(const char *pfn, const char *ifn, const char *ofn, patch_flags_t *flags);
+static int patch(const char *pfn, const char *ifn, const char *ofn, const apply_flags_t *const flags);
 
 int gible_patch(const char *execname, int argc, char *argv[])
 {
-    patch_flags_t flags;
-    memset(&flags, 0, sizeof(patch_flags_t));
+    apply_flags_t flags;
+    memset(&flags, 0, sizeof(apply_flags_t));
 
     // clang-format off
 
@@ -38,6 +38,7 @@ int gible_patch(const char *execname, int argc, char *argv[])
         ARGC_OPT_FLAG('g', "strict-input-crc", &flags.strict_crc, FLAG_CRC_INPUT, "Aborts on input crc mismatch.", 0, NULL),
         ARGC_OPT_FLAG('j', "strict-output-crc", &flags.strict_crc, FLAG_CRC_OUTPUT, "Aborts on output crc mismatch (Not really useful).", 0, NULL),
         ARGC_OPT_FLAG('k', "strict-crc", &flags.strict_crc, FLAG_CRC_ALL, "Ignores all crc checks.", 0, NULL),
+        ARGC_OPT_BOOLEAN('b', "filebuffer", &flags.use_buffer, 0, "Uses a heap allocated buffer instead of memory mapping.", 0, NULL),
         ARGC_OPT_END(),
     };
 
@@ -70,15 +71,17 @@ int gible_patch(const char *execname, int argc, char *argv[])
     return patch(pfn, ifn, ofn, &flags);
 }
 
-static int patch(const char *pfn, const char *ifn, const char *ofn, patch_flags_t *flags)
+static int patch(const char *pfn, const char *ifn, const char *ofn, const apply_flags_t *const flags)
 {
     patch_apply_context_t c;
 
+    const filemap_api_t *fmap_api = flags->use_buffer ? filemap_buffer_api : filemap_mmap_api;
+
     c.flags = flags;
 
-    c.patch = filemap_new(pfn, 1, filemap_buffer_api);
-    c.input = filemap_new(ifn, 1, filemap_buffer_api);
-    c.output = filemap_new(ofn, 0, filemap_buffer_api);
+    c.patch = filemap_new(pfn, 1, fmap_api);
+    c.input = filemap_new(ifn, 1, fmap_api);
+    c.output = filemap_new(ofn, 0, fmap_api);
 
     filemap_open(&c.patch);
     filemap_open(&c.input);
