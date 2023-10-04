@@ -4,13 +4,14 @@
 
 #if defined(_WIN32)
 #include <io.h>
-#define F_OK   0
+#define F_OK 0
 #define access _access
 #else
 #include <unistd.h>
 #endif
 
-#include "utils.h"
+#include "helpers/utils.h"
+#include <string.h> // strcmp
 
 int file_exists(const char *fn)
 {
@@ -38,4 +39,18 @@ inline unsigned long readvint(unsigned char **stream)
         shift += 7;
     }
     return result;
+}
+
+int are_filenames_same(const char *pfn, const char *ifn, const char *ofn)
+{
+    if (strcmp(pfn, ifn) == 0)
+        return 1;
+
+    if (strcmp(ifn, ofn) == 0)
+        return 2;
+
+    if (strcmp(pfn, ofn) == 0)
+        return 3;
+
+    return 0;
 }

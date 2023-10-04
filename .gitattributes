@@ -1,0 +1,2 @@
+*.c text eof=lf,blank-at-eol,blank-at-eof
+Makefile text eof=lf,tabwidth=4

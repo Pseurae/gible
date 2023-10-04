@@ -1,7 +1,7 @@
-#include "../crc32.h"
-#include "../filemap.h"
-#include "../format.h"
-#include "../utils.h"
+#include "helpers/crc32.h"
+#include "helpers/filemap.h"
+#include "helpers/format.h"
+#include "helpers/utils.h"
 #include <stdint.h>
 #include <stdio.h>
 
@@ -13,29 +13,44 @@ enum bps_action
     BPS_TARGET_COPY
 };
 
-static int bps_patch(patch_context_t *c);
-const patch_format_t bps_format = { "BPS", "BPS1", 4, bps_patch };
+static int bps_apply(patch_apply_context_t *c);
+static int bps_create(patch_create_context_t *c);
 
-static int bps_patch(patch_context_t *c)
+const patch_format_t bps_format = 
+{ 
+    .name = "BPS", 
+    .header = "BPS1", 
+    .ext = "bps", 
+    .apply_main = bps_apply, 
+    .create_main = bps_create, 
+    .apply_check = NULL, 
+    .create_check = NULL 
+};
+
+// -------------------------------------------------
+// Patch Application
+// -------------------------------------------------
+
+static int bps_apply(patch_apply_context_t *c)
 {
-#define check_crc32(a, b, err) \
-    if ((a)) \
+#define check_crc32(a, err) \
+    if ((scrc[a] != acrc[a])) \
     { \
-        if ((b)) \
+        if ((flags->strict_crc & FLAG_##a)) \
         { \
-            return PATCH_ERROR(err); \
+            return APPLY_ERROR(err); \
         } \
         else \
         { \
-            gible_warn(err); \
+            (gible_warn(err)); \
         } \
     }
 
 #define patch8() (patch < patchend ? *(patch++) : 0)
 #define input8() (input < inputend ? *(input++) : 0)
-#define sign(b)  ((b & 1 ? -1 : +1) * (b >> 1))
+#define sign(b) ((b & 1 ? -1 : +1) * (b >> 1))
 
-    patch_flags_t *flags = c->flags;
+    const apply_flags_t *flags = c->flags;
 
     unsigned char *patch, *patchstart, *patchend, *patchcrc;
     unsigned char *input;
@@ -44,11 +59,8 @@ static int bps_patch(patch_context_t *c)
     unsigned int acrc[3] = { 0, 0, 0 };
     unsigned int scrc[3] = { 0, 0, 0 };
 
-    if (c->patch.status == -1)
-        return PATCH_RET_INVALID_PATCH;
-
     if (c->patch.size < 19)
-        return PATCH_ERROR("Patch file is too small to be a BPS file.");
+        return APPLY_ERROR("Patch file is too small to be a BPS file.");
 
     patch = c->patch.handle;
     patchstart = patch;
@@ -57,22 +69,16 @@ static int bps_patch(patch_context_t *c)
 
     if (~flags->ignore_crc & FLAG_CRC_PATCH)
     {
-        scrc[2] = read32le(patchcrc + 8);
-        acrc[2] = crc32(patchstart, c->patch.size - 4, 0);
-        check_crc32(scrc[2] != acrc[2], flags->strict_crc & FLAG_CRC_PATCH, "Patch CRCs don't match.");
+        scrc[CRC_PATCH] = read32le(patchcrc + 8);
+        acrc[CRC_PATCH] = crc32(patchstart, c->patch.size - 4, 0);
+        check_crc32(CRC_PATCH, "Patch CRCs don't match.");
     }
 
     if (patch8() != 'B' || patch8() != 'P' || patch8() != 'S' || patch8() != '1')
-        return PATCH_ERROR("Invalid header for a BPS file.");
+        return APPLY_ERROR("Invalid header for a BPS file.");
 
     unsigned long input_size = readvint(&patch);
     unsigned long output_size = readvint(&patch);
-
-    c->input = mmap_file_new(c->fn.input, 1);
-    mmap_open(&c->input);
-
-    if (c->input.status == -1)
-        return PATCH_RET_INVALID_INPUT;
 
     input = c->input.handle;
 
@@ -81,16 +87,13 @@ static int bps_patch(patch_context_t *c)
 
     if (~flags->ignore_crc & FLAG_CRC_INPUT)
     {
-        scrc[0] = read32le(patchcrc);
-        acrc[0] = crc32(input, input_size, 0);
-        check_crc32(scrc[0] != acrc[0], flags->strict_crc & FLAG_CRC_INPUT, "Input CRCs don't match.");
+        scrc[CRC_INPUT] = read32le(patchcrc);
+        acrc[CRC_INPUT] = crc32(input, input_size, 0);
+        check_crc32(CRC_INPUT, "Input CRCs don't match.");
     }
 
-    c->output = mmap_file_new(c->fn.output, 0);
-    mmap_create(&c->output, output_size);
-
-    if (c->output.status == -1)
-        return PATCH_RET_INVALID_OUTPUT;
+    if (!filemap_create(&c->output, output_size))
+        return APPLY_RET_INVALID_OUTPUT;
 
     output = c->output.handle;
     outputstart = c->output.handle;
@@ -140,15 +143,15 @@ static int bps_patch(patch_context_t *c)
             break;
 
         default:
-            return PATCH_ERROR("Invalid BPS patching action.");
+            return APPLY_ERROR("Invalid BPS patching action.");
         }
     }
 
     if (~flags->ignore_crc & FLAG_CRC_OUTPUT)
     {
-        scrc[1] = read32le(patchcrc + 4);
-        acrc[1] = crc32(c->output.handle, c->output.size, 0);
-        check_crc32(scrc[1] != acrc[1], flags->strict_crc & FLAG_CRC_OUTPUT, "Output CRCs don't match.");
+        scrc[CRC_OUTPUT] = read32le(patchcrc + 4);
+        acrc[CRC_OUTPUT] = crc32(c->output.handle, c->output.size, 0);
+        check_crc32(CRC_OUTPUT, "Output CRCs don't match.");
     }
 
 #undef check_crc32
@@ -156,5 +159,15 @@ static int bps_patch(patch_context_t *c)
 #undef input8
 #undef sign
 
-    return PATCH_RET_SUCCESS;
+    return APPLY_RET_SUCCESS;
+}
+
+// -------------------------------------------------
+// Patch Creation
+// -------------------------------------------------
+
+static int bps_create(patch_create_context_t *c)
+{
+    (void)c;
+    return APPLY_ERROR("BPS patch creation not implemented yet.");
 }

@@ -1,6 +1,6 @@
-#include "argc.h"
+#include "helpers/argc.h"
 
-argc_parser_t argc_parser_new(const char *execname, argc_option_t *options, int flags)
+argc_parser_t argc_parser_new(const char *execname, const argc_option_t *options, int flags)
 {
     argc_parser_t par;
     par.execname = execname;
@@ -19,7 +19,7 @@ void argc_parser_set_messages(argc_parser_t *par, const char *desc, const char *
 }
 
 // Returns 1 on success, -1 on failure
-int argc_parser_execute(argc_ctx_t *ctx, argc_option_t *option)
+int argc_parser_execute(argc_ctx_t *ctx, const argc_option_t *option)
 {
 #define error(...) (fprintf(stderr, __VA_ARGS__), -1)
 
@@ -109,7 +109,7 @@ int argc_parser_execute(argc_ctx_t *ctx, argc_option_t *option)
 }
 
 // Returns 0 on no match, 1 on success, -1 on failure
-int argc_parser_short_opt(argc_ctx_t *ctx, argc_option_t *options)
+int argc_parser_short_opt(argc_ctx_t *ctx, const argc_option_t *options)
 {
     for (; options->type != ARGC_TYPE_END; options++)
         if (ctx->curropt[0] == options->sname)
@@ -117,7 +117,7 @@ int argc_parser_short_opt(argc_ctx_t *ctx, argc_option_t *options)
     return 0;
 }
 
-int argc_parser_long_opt(argc_ctx_t *ctx, argc_option_t *options)
+int argc_parser_long_opt(argc_ctx_t *ctx, const argc_option_t *options)
 {
     for (; options->type != ARGC_TYPE_END; options++)
         if (!strcmp(ctx->curropt, options->lname))
@@ -144,7 +144,7 @@ int argc_parser_print_options_description(argc_parser_t *par)
     if (par->options)
     {
         fprintf(stderr, "options:\n");
-        argc_option_t *options = par->options;
+        const argc_option_t *options = par->options;
 
         for (; options->type != ARGC_TYPE_END; options++)
         {
@@ -175,7 +175,7 @@ int argc_parser_print_help(argc_parser_t *par)
     return 1;
 }
 
-void argc_parser_help_callback(argc_parser_t *par, argc_option_t *option)
+void argc_parser_help_callback(argc_parser_t *par, const argc_option_t *option)
 {
     argc_parser_print_help(par);
     (void)option; // Silence GCC warning
@@ -227,10 +227,13 @@ int argc_parser_parse(argc_parser_t *par, int argc, char **argv)
         continue;
 
     unknown_opt:
-        if (ctx.curropt)
-            fprintf(stderr, "%s: illegal option -- %s.\n", par->execname, ctx.curropt);
-        else
-            fprintf(stderr, "%s: illegal option -- %s.\n", par->execname, *ctx.argv);
+        if (!(par->flags & ARGC_PARSER_FLAGS_IGNORE_UNKNOWN))
+        {
+            if (ctx.curropt)
+                fprintf(stderr, "%s: illegal option -- %s.\n", par->execname, ctx.curropt);
+            else
+                fprintf(stderr, "%s: illegal option -- %s.\n", par->execname, *ctx.argv);
+        }
 
         if (par->flags & ARGC_PARSER_FLAGS_HELP_ON_UNKNOWN)
             argc_parser_print_usage(par);
