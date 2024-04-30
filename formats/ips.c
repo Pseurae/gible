@@ -111,38 +111,37 @@ static int ips_create_check_for_rle(unsigned char *bytes, unsigned long size)
     return 1;
 }
 
-static void ips_create_write_block(bytearray_t *a, unsigned char *patched, unsigned int start, unsigned int end)
+static void ips_create_write_rle_block(bytearray_t *a, unsigned int address, unsigned short size, unsigned char byte)
 {
-    unsigned int address = start;
-    unsigned short size = end - start;
-
     unsigned char *addressBytes = (unsigned char *)&address;
     unsigned char *sizeBytes = (unsigned char *)&size;
-
-    // if (memcmp(addressBytes, "EOF", 3) == 0)
-    //     (address--, size++);
 
     bytearray_push(a, addressBytes[2]);
     bytearray_push(a, addressBytes[1]);
     bytearray_push(a, addressBytes[0]);
 
-    if (ips_create_check_for_rle(patched + address, size))
-    {
-        bytearray_push(a, 0);
-        bytearray_push(a, 0);
+    bytearray_push(a, 0);
+    bytearray_push(a, 0);
 
-        bytearray_push(a, sizeBytes[1]);
-        bytearray_push(a, sizeBytes[0]);
+    bytearray_push(a, sizeBytes[1]);
+    bytearray_push(a, sizeBytes[0]);
 
-        bytearray_push(a, *(patched + address));
-    }
-    else
-    {
-        bytearray_push(a, sizeBytes[1]);
-        bytearray_push(a, sizeBytes[0]);
+    bytearray_push(a, byte);
+}
 
-        bytearray_push_data(a, patched + address, size);
-    }
+static void ips_create_write_block(bytearray_t *a, unsigned int address, unsigned short size, unsigned char *bytes)
+{
+    unsigned char *addressBytes = (unsigned char *)&address;
+    unsigned char *sizeBytes = (unsigned char *)&size;
+
+    bytearray_push(a, addressBytes[2]);
+    bytearray_push(a, addressBytes[1]);
+    bytearray_push(a, addressBytes[0]);
+
+    bytearray_push(a, sizeBytes[1]);
+    bytearray_push(a, sizeBytes[0]);
+
+    bytearray_push_data(a, bytes, size);
 }
 
 static int ips_create(patch_create_context_t *c)
@@ -193,7 +192,7 @@ static int ips_create_write_blocks(bytearray_t *b, unsigned char *patched, unsig
             for (; changed(offset) && checkoffsize(offset, start); ++offset)
                 ;
 
-            for (unchanged = 0; !changed(offset + unchanged + 1) && checkoffsize(offset + unchanged + 1, start); ++unchanged)
+            for (unchanged = 0; !changed(offset + unchanged) && checkoffsize(offset + unchanged, start); ++unchanged)
                 ;
 
             // The size of a normal IPS Block Header is 5 bytes
@@ -203,7 +202,7 @@ static int ips_create_write_blocks(bytearray_t *b, unsigned char *patched, unsig
             continue;
         }
 
-        ips_create_write_block(b, patched, start, offset);
+        ips_create_write_block(b, start, offset - start, patched + start);
     }
 
 #undef patched8
