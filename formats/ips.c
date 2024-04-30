@@ -6,15 +6,19 @@
 static int ips_apply(patch_apply_context_t *c);
 static int ips_create_check(patch_create_context_t *c);
 static int ips_create(patch_create_context_t *c);
-static int ips_create_write_blocks(bytearray_t *b, unsigned char *patched, unsigned long patched_size, unsigned char *base, unsigned long base_size);
+static int ips_create_write(bytearray_t *b, unsigned char *patched, unsigned long patched_size, unsigned char *base, unsigned long base_size);
+static int ips_create_write_blocks(bytearray_t *b, unsigned int start, unsigned int end, unsigned char *patched, unsigned long patched_size, unsigned char *base, unsigned long base_size);
 
-const patch_format_t ips_format = { .name = "IPS",
+const patch_format_t ips_format = 
+{ 
+    .name = "IPS",
     .header = "PATCH",
     .ext = "ips",
     .apply_main = ips_apply,
     .create_main = ips_create,
     .apply_check = NULL,
-    .create_check = ips_create_check };
+    .create_check = ips_create_check 
+};
 
 #define EOF_MARKER 0x454F46
 
@@ -92,25 +96,6 @@ static int ips_create_check(patch_create_context_t *c)
     return c->patched.size <= 0x1000000;
 }
 
-static int ips_create_check_for_rle(unsigned char *bytes, unsigned long size)
-{
-    if (size <= 2)
-        return 0;
-
-    unsigned char prev = *(bytes++);
-    size--;
-
-    while (size--)
-    {
-        if (prev != *bytes)
-            return 0;
-
-        prev = *(bytes++);
-    }
-
-    return 1;
-}
-
 static void ips_create_write_rle_block(bytearray_t *a, unsigned int address, unsigned short size, unsigned char byte)
 {
     unsigned char *addressBytes = (unsigned char *)&address;
@@ -159,7 +144,7 @@ static int ips_create(patch_create_context_t *c)
     if (patched_size > 0x1000000)
         return CREATE_ERROR("IPS cannot be used to patch files to size over 16MB.");
 
-    ips_create_write_blocks(&b, patched, patched_size, base, base_size);
+    ips_create_write(&b, patched, patched_size, base, base_size);
     bytearray_push_string(&b, "EOF");
 
     filemap_create(&c->output, b.size);
@@ -170,12 +155,64 @@ static int ips_create(patch_create_context_t *c)
     return CREATE_RET_SUCCESS;
 }
 
-static int ips_create_write_blocks(bytearray_t *b, unsigned char *patched, unsigned long patched_size, unsigned char *base, unsigned long base_size)
-{
 #define patched8(i) (patched[i])
 #define base8(i) (i < base_size ? base[i] : 0)
 #define changed(i) (patched8(i) != base8(i))
-#define checkoffsize(off, start) ((off) < patched_size && ((off) - (start)) < UINT16_MAX)
+#define checkoffsize(off, start) ((off) < patched_size)
+
+static int ips_create_write_blocks(bytearray_t *b, unsigned int start, unsigned int end, unsigned char *patched, unsigned long patched_size, unsigned char *base, unsigned long base_size)
+{
+    if (start >= end) return 0;
+    unsigned int length = end - start >= UINT16_MAX ? UINT16_MAX : end - start;
+
+    unsigned int consecutive = 0;
+
+    for (; patched8(start + consecutive) == patched8(start + consecutive + 1) && consecutive < length; ++consecutive)
+        ;
+
+    // The size of a RLE Block Header is 8 bytes.
+    if (consecutive == length || consecutive > 8)
+    {
+        ips_create_write_rle_block(b, start, consecutive, patched[start]);
+        return ips_create_write_blocks(b, start + consecutive, end, patched, patched_size, base, base_size);
+    }
+    else
+    {
+        unsigned int consecutive = 0, rleStart = 0;
+
+        while (consecutive + rleStart < length)
+        {
+            if (patched8(start + consecutive + rleStart) == patched8(start + consecutive + rleStart + 1))
+            {
+                ++consecutive;
+            }
+            else
+            {
+                ++rleStart;
+                consecutive = 0;
+            }
+
+            if ((consecutive > 8 + 5) ||
+                (consecutive > 8 && rleStart + consecutive >= length))
+            {
+                if (rleStart) length = rleStart;
+                break;
+            }
+        }
+
+        unsigned int increment = length;
+        while (patched8(start + length - 1) == base8(start + length - 1)) --length;
+
+        ips_create_write_block(b, start, length, patched + start);
+        return ips_create_write_blocks(b, start + increment, end, patched, patched_size, base, base_size);
+    }
+
+    // ips_create_write_block(b, start, length, patched + start);
+    // return ips_create_write_blocks(b, start + length, end, patched, patched_size, base, base_size);
+}
+
+static int ips_create_write(bytearray_t *b, unsigned char *patched, unsigned long patched_size, unsigned char *base, unsigned long base_size)
+{
 
     for (unsigned int offset = 0, start = 0, unchanged = 0; offset < patched_size; ++offset)
     {
@@ -202,13 +239,13 @@ static int ips_create_write_blocks(bytearray_t *b, unsigned char *patched, unsig
             continue;
         }
 
-        ips_create_write_block(b, start, offset - start, patched + start);
+        ips_create_write_blocks(b, start, offset, patched, patched_size, base, base_size);
     }
+
+    return CREATE_RET_SUCCESS;
+}
 
 #undef patched8
 #undef base8
 #undef changed8
 #undef checkoffsize
-
-    return 0;
-}
