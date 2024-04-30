@@ -6,17 +6,15 @@
 static int ips_apply(patch_apply_context_t *c);
 static int ips_create_check(patch_create_context_t *c);
 static int ips_create(patch_create_context_t *c);
+static int ips_create_write_blocks(bytearray_t *b, unsigned char *patched, unsigned long patched_size, unsigned char *base, unsigned long base_size);
 
-const patch_format_t ips_format = 
-{ 
-    .name = "IPS", 
-    .header = "PATCH", 
-    .ext = "ips", 
-    .apply_main = ips_apply, 
-    .create_main = ips_create, 
-    .apply_check = NULL, 
-    .create_check = ips_create_check 
-};
+const patch_format_t ips_format = { .name = "IPS",
+    .header = "PATCH",
+    .ext = "ips",
+    .apply_main = ips_apply,
+    .create_main = ips_create,
+    .apply_check = NULL,
+    .create_check = ips_create_check };
 
 #define EOF_MARKER 0x454F46
 
@@ -121,8 +119,8 @@ static void ips_create_write_block(bytearray_t *a, unsigned char *patched, unsig
     unsigned char *addressBytes = (unsigned char *)&address;
     unsigned char *sizeBytes = (unsigned char *)&size;
 
-    if (memcmp(addressBytes, "EOF", 3) == 0)
-        (address--, size++);
+    // if (memcmp(addressBytes, "EOF", 3) == 0)
+    //     (address--, size++);
 
     bytearray_push(a, addressBytes[2]);
     bytearray_push(a, addressBytes[1]);
@@ -162,26 +160,8 @@ static int ips_create(patch_create_context_t *c)
     if (patched_size > 0x1000000)
         return CREATE_ERROR("IPS cannot be used to patch files to size over 16MB.");
 
-#define patched8(i) (patched[i])
-#define base8(i) (i < base_size ? base[i] : 0)
-
-    for (unsigned int offset = 0, start = 0; offset < patched_size; ++offset)
-    {
-        if (patched8(offset) == base8(offset))
-            continue;
-
-        start = offset;
-
-        for (; patched8(offset) != base8(offset) && offset < patched_size && (offset - start) < UINT16_MAX; ++offset)
-            ;
-
-        ips_create_write_block(&b, patched, start, offset);
-    }
-
+    ips_create_write_blocks(&b, patched, patched_size, base, base_size);
     bytearray_push_string(&b, "EOF");
-
-#undef patched8
-#undef base8
 
     filemap_create(&c->output, b.size);
     memcpy(c->output.handle, b.data, b.size);
@@ -189,4 +169,47 @@ static int ips_create(patch_create_context_t *c)
     bytearray_close(&b);
 
     return CREATE_RET_SUCCESS;
+}
+
+static int ips_create_write_blocks(bytearray_t *b, unsigned char *patched, unsigned long patched_size, unsigned char *base, unsigned long base_size)
+{
+#define patched8(i) (patched[i])
+#define base8(i) (i < base_size ? base[i] : 0)
+#define changed(i) (patched8(i) != base8(i))
+#define checkoffsize(off, start) ((off) < patched_size && ((off) - (start)) < UINT16_MAX)
+
+    for (unsigned int offset = 0, start = 0, unchanged = 0; offset < patched_size; ++offset)
+    {
+        if (patched8(offset) == base8(offset))
+            continue;
+
+        if (memcmp(&offset, "EOF", 3) == 0)
+            offset--;
+
+        start = offset;
+
+        while (offset < patched_size)
+        {
+            for (; changed(offset) && checkoffsize(offset, start); ++offset)
+                ;
+
+            for (unchanged = 0; !changed(offset + unchanged + 1) && checkoffsize(offset + unchanged + 1, start); ++unchanged)
+                ;
+
+            // The size of a normal IPS Block Header is 5 bytes
+            if (unchanged >= 5) break;
+
+            offset += unchanged + 1;
+            continue;
+        }
+
+        ips_create_write_block(b, patched, start, offset);
+    }
+
+#undef patched8
+#undef base8
+#undef changed8
+#undef checkoffsize
+
+    return 0;
 }
