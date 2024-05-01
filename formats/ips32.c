@@ -173,7 +173,7 @@ static int ips32_create_write_blocks(bytearray_t *b, unsigned int start, unsigne
         ;
 
     // The size of a RLE Block Header is 8 bytes.
-    if (consecutive == length || consecutive > 8)
+    if ((consecutive > 3 && consecutive == length) || consecutive > 8)
     {
         ips32_create_write_rle_block(b, start, consecutive, patched[start]);
         return ips32_create_write_blocks(b, start + consecutive, end, patched, patched_size, base, base_size);
