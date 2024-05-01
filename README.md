@@ -21,3 +21,7 @@ Just run `make` and gible should be compiled.
 Credits go to Stephan Brumme.  
 http://create.stephan-brumme.com/disclaimer.html
 
+#### libips
+Used as a reference for IPS creation.  
+By Alcaro.  
+https://github.com/Alcaro/Flips/blob/master/libips.cpp
