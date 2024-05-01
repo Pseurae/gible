@@ -20,8 +20,6 @@ const patch_format_t ips_format =
     .create_check = ips_create_check 
 };
 
-#define EOF_MARKER 0x454F46
-
 // -------------------------------------------------
 // Patch Application
 // -------------------------------------------------
@@ -200,11 +198,11 @@ static int ips_create_write_blocks(bytearray_t *b, unsigned int start, unsigned 
             }
         }
 
-        unsigned int increment = length;
-        while (patched8(start + length - 1) == base8(start + length - 1)) --length;
+        unsigned int blockLength = length;
+        while (patched8(start + blockLength - 1) == base8(start + blockLength - 1)) --blockLength;
 
-        ips_create_write_block(b, start, length, patched + start);
-        return ips_create_write_blocks(b, start + increment, end, patched, patched_size, base, base_size);
+        ips_create_write_block(b, start, blockLength, patched + start);
+        return ips_create_write_blocks(b, start + length, end, patched, patched_size, base, base_size);
     }
 
     // ips_create_write_block(b, start, length, patched + start);
