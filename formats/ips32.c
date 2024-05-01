@@ -160,7 +160,7 @@ static int ips32_create(patch_create_context_t *c)
 #define patched8(i) (patched[i])
 #define base8(i) (i < base_size ? base[i] : 0)
 #define changed(i) (patched8(i) != base8(i))
-#define checkoffsize(off, start) ((off) < patched_size)
+#define checkoffsize(off, start) (((off) + 1) < patched_size)
 
 static int ips32_create_write_blocks(bytearray_t *b, unsigned int start, unsigned int end, unsigned char *patched, unsigned long patched_size, unsigned char *base, unsigned long base_size)
 {

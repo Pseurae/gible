@@ -153,10 +153,10 @@ static int ips_create(patch_create_context_t *c)
     return CREATE_RET_SUCCESS;
 }
 
-#define patched8(i) (patched[i])
+#define patched8(i) (i < patched_size ? patched[i] : 0)
 #define base8(i) (i < base_size ? base[i] : 0)
 #define changed(i) (patched8(i) != base8(i))
-#define checkoffsize(off, start) ((off) < patched_size)
+#define checkoffsize(off, start) (((off) + 1) < patched_size)
 
 static int ips_create_write_blocks(bytearray_t *b, unsigned int start, unsigned int end, unsigned char *patched, unsigned long patched_size, unsigned char *base, unsigned long base_size)
 {
